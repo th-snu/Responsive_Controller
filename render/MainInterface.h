@@ -48,6 +48,9 @@ public:
  	void RunPPO();
 	void step();
 
+	void perturb();
+	void removeFirstPerturbance();
+	bool addObject(const dart::dynamics::SkeletonPtr& object);
 	
 protected:
 
@@ -80,8 +83,8 @@ protected:
 	std::chrono::steady_clock::time_point begin;
 
 	std::vector<dart::dynamics::SkeletonPtr> perturbance;
-	std::vector<std::chrono::steady_clock::time_point> perturbance_timeout;
-	
+	std::vector<int> perturbance_timestamp;
+
 	dart::dynamics::SkeletonPtr mBall;
 
 	bool on_animation;
@@ -97,8 +100,6 @@ protected:
 	bool render_bvh=false;
 	bool render_sim=false;
 
-	void perturb();
-	bool addObject(const dart::dynamics::SkeletonPtr& object);
 	int mSkelCount;
 
 	// std library objects that allow us to generate high-quality random numbers

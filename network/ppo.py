@@ -21,7 +21,7 @@ warnings.filterwarnings(action='ignore')
 
 np.set_printoptions(threshold=sys.maxsize)
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
-os.environ['CUDA_VISIBLE_DEVICES'] = ''
+# os.environ['CUDA_VISIBLE_DEVICES'] = ''
 
 class PPO(object):
     def __init__(self, learning_rate_actor=2e-4, learning_rate_critic=0.001, learning_rate_decay=0.9993,
@@ -41,13 +41,17 @@ class PPO(object):
         self.reward_max = 0
 
     def initRun(self, pretrain, num_state, num_action, num_slaves=1):
+        os.environ['CUDA_VISIBLE_DEVICES'] = ''
         self.pretrain = pretrain
 
         self.num_slaves = num_slaves
         self.num_action = num_action
         self.num_state = num_state
 
-        config = tf.compat.v1.ConfigProto()
+        # disable gpu for run
+        config = tf.compat.v1.ConfigProto(
+                device_count = {'GPU': 0}
+            )
         config.intra_op_parallelism_threads = self.num_slaves
         config.inter_op_parallelism_threads = self.num_slaves
         self.sess = tf.compat.v1.Session(config=config)

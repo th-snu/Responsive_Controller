@@ -1,7 +1,7 @@
 build/
 network/__pycache__/
 network/output/
-network/simEnv.so
+network/SimEnv.so
 sim/libsim.a
 result/
 include/
