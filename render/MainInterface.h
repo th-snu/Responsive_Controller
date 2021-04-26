@@ -26,6 +26,7 @@ namespace py = pybind11;
 class MainInterface : public GLUTWindow
 {
 public:
+
 	MainInterface();
 	MainInterface(std::string bvh, std::string ppo);
 
@@ -45,6 +46,7 @@ public:
  	void initNetworkSetting(std::string ppo);
  	void UpdateMotion(std::vector<Eigen::VectorXd> motion, const char* type);
  	void RunPPO();
+	void step();
 
 	
 protected:
@@ -66,7 +68,7 @@ protected:
 
 	int mw,mh;
 	double phase;
-	std::vector<double>				mTiming; 
+	std::vector<double>	mTiming; 
 	std::vector<Eigen::VectorXd> mMotion_bvh;
 	std::vector<Eigen::VectorXd> mMotion_sim;
 	std::vector<Eigen::VectorXd> mMotion_reg;
@@ -77,6 +79,11 @@ protected:
 	int mDisplayTimeout;
 	std::chrono::steady_clock::time_point begin;
 
+	std::vector<dart::dynamics::SkeletonPtr> perturbance;
+	std::vector<std::chrono::steady_clock::time_point> perturbance_timeout;
+	
+	dart::dynamics::SkeletonPtr mBall;
+
 	bool on_animation;
 	int speed_type;
 	int motion_type;
@@ -84,15 +91,21 @@ protected:
 	int mCurFrame;
 	int mTotalFrame;
 
-	//p::object 						mRegression;
-	py::object 						mPPO;
-
-
+	//p::object mRegression;
+	py::object mPPO;
 
 	bool render_bvh=false;
 	bool render_sim=false;
 
-	
+	void perturb();
+	bool addObject(const dart::dynamics::SkeletonPtr& object);
+	int mSkelCount;
+
+	// std library objects that allow us to generate high-quality random numbers
+	std::random_device mRD;
+	std::mt19937 mMT;
+	std::uniform_real_distribution<double> mDistribution;
+
 };
 
 

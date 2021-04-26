@@ -19,49 +19,69 @@ DrawSkeleton(
 		std::string name = bn->getName();
 		Eigen::Vector4d color = shapeNodes[type]->getVisualAspect()->getRGBA();
 		color.head<3>() *= 0.5;
-		if(name == "FemurL" || name == "FemurR" || name == "TibiaL" || name == "TibiaR"){
-			glPushMatrix();
-			glColor4f(color[0], color[1], color[2], color[3]);
-			glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
-			glTranslatef(jn_com[0], jn_com[1], jn_com[2]);
-			GUI::DrawSphere(0.04);
-			glPopMatrix();
-		}
 
-		if(name == "ForeArmL" || name == "ForeArmR"){
-			glPushMatrix();
-			glColor4f(color[0], color[1], color[2], color[3]);
-			glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
-			glTranslatef(jn_com[0], jn_com[1], jn_com[2]);
-			GUI::DrawSphere(0.03);
-			glPopMatrix();
-		}
+		glPushMatrix();
+		{
+			if(name == "FemurL" || name == "FemurR" || name == "TibiaL" || name == "TibiaR"){
+				glColor4f(color[0], color[1], color[2], color[3]);
+				glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
+				glTranslatef(jn_com[0], jn_com[1], jn_com[2]);
+				GUI::DrawSphere(0.04);
+			}
 
-		if(name == "HandL" || name == "HandR"){
-			glPushMatrix();
-			glColor4f(color[0], color[1], color[2], color[3]);
-			glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
-			glTranslatef(jn_com[0], jn_com[1], jn_com[2]);
-			GUI::DrawSphere(0.025);
-			glPopMatrix();
-		}
+			else if(name == "ForeArmL" || name == "ForeArmR"){
+				glColor4f(color[0], color[1], color[2], color[3]);
+				glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
+				glTranslatef(jn_com[0], jn_com[1], jn_com[2]);
+				GUI::DrawSphere(0.03);
+			}
 
-		if(name == "FootL" || name == "FootR"){
-			glPushMatrix();
-			glColor4f(color[0], color[1], color[2], color[3]);
-			glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
-			glTranslatef(jn_com[0], jn_com[1], jn_com[2]);
-			GUI::DrawSphere(0.035);
-			glPopMatrix();
+			else if(name == "HandL" || name == "HandR"){
+				glColor4f(color[0], color[1], color[2], color[3]);
+				glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
+				glTranslatef(jn_com[0], jn_com[1], jn_com[2]);
+				GUI::DrawSphere(0.025);
+			}
 
+			else if(name == "FootL" || name == "FootR"){
+				glColor4f(color[0], color[1], color[2], color[3]);
+				glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
+				glTranslatef(jn_com[0], jn_com[1], jn_com[2]);
+				GUI::DrawSphere(0.035);
+			}
+
+			// temporarily to draw sphere
+			else if(name == "rigid ball"){
+				glColor4f(color[0], color[1], color[2], color[3]);
+				glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
+				glTranslatef(jn_com[0], jn_com[1], jn_com[2]);
+				GUI::DrawSphere(0.1);
+			}
+
+			for (auto i = 0u; i < bn->getNumMarkers(); ++i)
+				DrawMarker(bn->getMarker(i));
 		}
-		
+		glPopMatrix();
 
 
 		auto T = shapeNodes[type]->getTransform();
 		DrawShape(T,shapeNodes[type]->getShape().get(),shapeNodes[type]->getVisualAspect()->getRGBA(), name);
+
 	}
 }
+
+void GUI::DrawMarker(
+    const dart::dynamics::Marker* marker)
+{
+	if (!marker)
+		return;
+
+	glPushMatrix();
+	glTranslated(marker->getLocalPosition()[0], marker->getLocalPosition()[1], marker->getLocalPosition()[2]);
+	GUI::DrawSphere(0.005);
+  	glPopMatrix();
+}
+
 void 
 GUI::
 DrawFootContact(

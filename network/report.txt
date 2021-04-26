@@ -1,0 +1,132 @@
+TensorFlow 2.0 Upgrade Script
+-----------------------------
+Converted 5 files
+Detected 5 issues that require attention
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+File: ./network.py
+--------------------------------------------------------------------------------
+./network.py:56:38: WARNING: tf.get_variable requires manual check. tf.get_variable returns ResourceVariables by default in 2.0, which have well-defined semantics and are stricter about shapes. You can disable this behavior by passing use_resource=False, or by calling tf.compat.v1.disable_resource_variables().
+--------------------------------------------------------------------------------
+File: ./ppo.py
+--------------------------------------------------------------------------------
+./ppo.py:285:8: WARNING: *.save requires manual check. (This warning is only applicable if the code saves a tf.Keras model) Keras model.save now saves to the Tensorflow SavedModel format by default, instead of HDF5. To continue saving to HDF5, add the argument save_format='h5' to the save() function.
+./ppo.py:286:8: WARNING: *.save requires manual check. (This warning is only applicable if the code saves a tf.Keras model) Keras model.save now saves to the Tensorflow SavedModel format by default, instead of HDF5. To continue saving to HDF5, add the argument save_format='h5' to the save() function.
+./ppo.py:413:20: WARNING: *.save requires manual check. (This warning is only applicable if the code saves a tf.Keras model) Keras model.save now saves to the Tensorflow SavedModel format by default, instead of HDF5. To continue saving to HDF5, add the argument save_format='h5' to the save() function.
+./ppo.py:417:20: WARNING: *.save requires manual check. (This warning is only applicable if the code saves a tf.Keras model) Keras model.save now saves to the Tensorflow SavedModel format by default, instead of HDF5. To continue saving to HDF5, add the argument save_format='h5' to the save() function.
+================================================================================
+Detailed log follows:
+
+================================================================================
+================================================================================
+Input tree: './'
+================================================================================
+--------------------------------------------------------------------------------
+Processing file './network.py'
+ outputting to '../dmm_upgrade/network.py'
+--------------------------------------------------------------------------------
+
+5:25: INFO: Changing tf.contrib.layers xavier initializer to a tf.compat.v1.keras.initializers.VarianceScaling and converting arguments.
+
+11:14: INFO: Multiplying scale arg of tf.contrib.layers.l2_regularizer by half to what tf.keras.regularizers.l2 expects.
+
+23:12: INFO: Renamed 'tf.random_normal' to 'tf.random.normal'
+23:29: INFO: Added keywords to args of function 'tf.shape'
+29:21: INFO: Added keywords to args of function 'tf.reduce_sum'
+29:113: INFO: Changed tf.to_float call to tf.cast(..., dtype=tf.float32).
+29:125: INFO: Added keywords to args of function 'tf.shape'
+29:144: INFO: Added keywords to args of function 'tf.reduce_sum'
+32:13: INFO: Renamed 'tf.variable_scope' to 'tf.compat.v1.variable_scope'
+33:17: INFO: Renamed 'tf.layers.dense' to 'tf.compat.v1.layers.dense'
+38:17: INFO: Renamed 'tf.layers.dense' to 'tf.compat.v1.layers.dense'
+43:17: INFO: Renamed 'tf.layers.dense' to 'tf.compat.v1.layers.dense'
+52:19: INFO: Renamed 'tf.layers.dense' to 'tf.compat.v1.layers.dense'
+56:38: WARNING: tf.get_variable requires manual check. tf.get_variable returns ResourceVariables by default in 2.0, which have well-defined semantics and are stricter about shapes. You can disable this behavior by passing use_resource=False, or by calling tf.compat.v1.disable_resource_variables().
+56:38: INFO: Renamed 'tf.get_variable' to 'tf.compat.v1.get_variable'
+58:84: INFO: tf.constant_initializer requires manual check. Initializers no longer have the dtype argument in the constructor or partition_info argument in the __call__ method.
+The calls have been converted to compat.v1 for safety (even though they may already have been correct).
+58:84: INFO: Renamed 'tf.constant_initializer' to 'tf.compat.v1.constant_initializer'
+65:13: INFO: Renamed 'tf.variable_scope' to 'tf.compat.v1.variable_scope'
+71:13: INFO: Renamed 'tf.variable_scope' to 'tf.compat.v1.variable_scope'
+77:19: INFO: Renamed 'tf.get_collection' to 'tf.compat.v1.get_collection'
+77:37: INFO: Renamed 'tf.GraphKeys' to 'tf.compat.v1.GraphKeys'
+79:19: INFO: Renamed 'tf.get_collection' to 'tf.compat.v1.get_collection'
+79:37: INFO: Renamed 'tf.GraphKeys' to 'tf.compat.v1.GraphKeys'
+92:13: INFO: Renamed 'tf.variable_scope' to 'tf.compat.v1.variable_scope'
+93:17: INFO: Renamed 'tf.layers.dense' to 'tf.compat.v1.layers.dense'
+98:17: INFO: Renamed 'tf.layers.dense' to 'tf.compat.v1.layers.dense'
+103:18: INFO: Renamed 'tf.layers.dense' to 'tf.compat.v1.layers.dense'
+111:13: INFO: Renamed 'tf.variable_scope' to 'tf.compat.v1.variable_scope'
+116:19: INFO: Renamed 'tf.get_collection' to 'tf.compat.v1.get_collection'
+116:37: INFO: Renamed 'tf.GraphKeys' to 'tf.compat.v1.GraphKeys'
+118:19: INFO: Renamed 'tf.get_collection' to 'tf.compat.v1.get_collection'
+118:37: INFO: Renamed 'tf.GraphKeys' to 'tf.compat.v1.GraphKeys'
+131:13: INFO: Renamed 'tf.variable_scope' to 'tf.compat.v1.variable_scope'
+132:17: INFO: Renamed 'tf.layers.dense' to 'tf.compat.v1.layers.dense'
+137:17: INFO: Renamed 'tf.layers.dense' to 'tf.compat.v1.layers.dense'
+142:18: INFO: Renamed 'tf.layers.dense' to 'tf.compat.v1.layers.dense'
+150:13: INFO: Renamed 'tf.variable_scope' to 'tf.compat.v1.variable_scope'
+155:19: INFO: Renamed 'tf.get_collection' to 'tf.compat.v1.get_collection'
+155:37: INFO: Renamed 'tf.GraphKeys' to 'tf.compat.v1.GraphKeys'
+157:19: INFO: Renamed 'tf.get_collection' to 'tf.compat.v1.get_collection'
+157:37: INFO: Renamed 'tf.GraphKeys' to 'tf.compat.v1.GraphKeys'
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+Processing file './monitor.py'
+ outputting to '../dmm_upgrade/monitor.py'
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+Processing file './env.py'
+ outputting to '../dmm_upgrade/env.py'
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+Processing file './ppo.py'
+ outputting to '../dmm_upgrade/ppo.py'
+--------------------------------------------------------------------------------
+
+31:8: INFO: Renamed 'tf.set_random_seed' to 'tf.compat.v1.set_random_seed'
+49:17: INFO: Renamed 'tf.ConfigProto' to 'tf.compat.v1.ConfigProto'
+52:20: INFO: Renamed 'tf.Session' to 'tf.compat.v1.Session'
+59:32: INFO: Renamed 'tf.trainable_variables' to 'tf.compat.v1.trainable_variables'
+61:21: INFO: Renamed 'tf.train.Saver' to 'tf.compat.v1.train.Saver'
+94:17: INFO: Renamed 'tf.ConfigProto' to 'tf.compat.v1.ConfigProto'
+97:20: INFO: Renamed 'tf.Session' to 'tf.compat.v1.Session'
+147:24: INFO: Renamed 'tf.train.AdamOptimizer' to 'tf.compat.v1.train.AdamOptimizer'
+160:13: INFO: Renamed 'tf.variable_scope' to 'tf.compat.v1.variable_scope'
+161:25: INFO: Added keywords to args of function 'tf.reduce_mean'
+164:25: INFO: Renamed 'tf.train.AdamOptimizer' to 'tf.compat.v1.train.AdamOptimizer'
+176:21: INFO: Renamed 'tf.placeholder' to 'tf.compat.v1.placeholder'
+180:13: INFO: Renamed 'tf.variable_scope' to 'tf.compat.v1.variable_scope'
+181:26: INFO: Renamed 'tf.placeholder' to 'tf.compat.v1.placeholder'
+183:22: INFO: Renamed 'tf.placeholder' to 'tf.compat.v1.placeholder'
+184:23: INFO: Renamed 'tf.placeholder' to 'tf.compat.v1.placeholder'
+185:31: INFO: Renamed 'tf.placeholder' to 'tf.compat.v1.placeholder'
+187:36: INFO: Renamed 'tf.placeholder' to 'tf.compat.v1.placeholder'
+195:16: INFO: Added keywords to args of function 'tf.reduce_mean'
+204:19: INFO: Renamed 'tf.trainable_variables' to 'tf.compat.v1.trainable_variables'
+210:21: INFO: Renamed 'tf.train.Saver' to 'tf.compat.v1.train.Saver'
+212:22: INFO: Renamed 'tf.global_variables_initializer' to 'tf.compat.v1.global_variables_initializer'
+285:8: WARNING: *.save requires manual check. (This warning is only applicable if the code saves a tf.Keras model) Keras model.save now saves to the Tensorflow SavedModel format by default, instead of HDF5. To continue saving to HDF5, add the argument save_format='h5' to the save() function.
+286:8: WARNING: *.save requires manual check. (This warning is only applicable if the code saves a tf.Keras model) Keras model.save now saves to the Tensorflow SavedModel format by default, instead of HDF5. To continue saving to HDF5, add the argument save_format='h5' to the save() function.
+305:17: INFO: Renamed 'tf.trainable_variables' to 'tf.compat.v1.trainable_variables'
+413:20: WARNING: *.save requires manual check. (This warning is only applicable if the code saves a tf.Keras model) Keras model.save now saves to the Tensorflow SavedModel format by default, instead of HDF5. To continue saving to HDF5, add the argument save_format='h5' to the save() function.
+417:20: WARNING: *.save requires manual check. (This warning is only applicable if the code saves a tf.Keras model) Keras model.save now saves to the Tensorflow SavedModel format by default, instead of HDF5. To continue saving to HDF5, add the argument save_format='h5' to the save() function.
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+Processing file './utils.py'
+ outputting to '../dmm_upgrade/utils.py'
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+

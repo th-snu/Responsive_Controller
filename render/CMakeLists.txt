@@ -47,5 +47,4 @@ file(GLOB SOURCES *.cpp *.h)
 add_executable(motion_ctr ${SOURCES})
 target_link_libraries(motion_ctr Qt5::Widgets Qt5::OpenGL 
 	${DART_LIBRARIES} ${Pybind11_LIBRARIES} ${PYTHON_LIBRARIES} GL GLU glut GLEW sim ${TinyXML_LIBRARIES} 
-	
 )

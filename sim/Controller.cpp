@@ -1,8 +1,29 @@
-
+#include "dart/collision/bullet/bullet.hpp"
 #include "Controller.h"
 using namespace dart::dynamics;
 namespace DPhy
 {
+
+// for bullet collision detector
+bool Controller::collide (const dart::dynamics::BodyNode* bn1,
+	const dart::dynamics::BodyNode* bn2){
+	auto collisionEngine = mWorld->getConstraintSolver()->getCollisionDetector();
+	auto collisionGroup = mWorld->getConstraintSolver()->getCollisionGroup();
+
+	dart::collision::CollisionOption option;
+	dart::collision::CollisionResult result;
+	bool collision = collisionGroup->collide(option, &result);
+
+	for (auto contact: result.getContacts()){
+		// get contacts at the end of step and write collision info somewhere
+		auto co1 = contact.collisionObject1;
+		auto co2 = contact.collisionObject2;
+
+		auto sf1 = co1->getShapeFrame()->getName();
+	}
+
+	return true;
+}
 
 Controller::Controller(ReferenceManager* ref, std::string character_path, bool record, int id)
 	:mControlHz(30),mSimulationHz(150),mCurrentFrame(0),
@@ -31,7 +52,8 @@ Controller::Controller(ReferenceManager* ref, std::string character_path, bool r
 	Eigen::VectorXd kv(this->mCharacter->GetSkeleton()->getNumDofs());
 	kp.setZero();
 	kv.setZero();
-	this->mCharacter->SetPDParameters(kp,kv);
+	
+	this->mCharacter->SetPDParameters(600, 49);
 
 	mContacts.clear();
 	mContacts.push_back("RightToe");
@@ -100,15 +122,15 @@ initPhysicsEnv()
 	this->mGround = DPhy::SkeletonBuilder::BuildFromFile(std::string(PROJECT_DIR)+std::string("/character/ground.xml")).first;
 	this->mGround->getBodyNode(0)->setFrictionCoeff(1.0);
 	this->mWorld->addSkeleton(this->mGround);
-
 }
-void 
+
+bool 
 Controller::
 Step()
 {	
 	if(IsTerminalState()) {
 		std::cout<<mCurrentFrame<<" , Terminal state"<<std::endl;
-		return;
+		return false;
 	}
 
 	Eigen::VectorXd s = this->GetState();
@@ -161,7 +183,7 @@ Step()
 		// mWorld->step(false);
 		
 		// torque limit
-		Eigen::VectorXd torque = mCharacter->GetSkeleton()->getSPDForces(mPDTargetPositions, 600, 49, mWorld->getConstraintSolver());
+		Eigen::VectorXd torque = mCharacter->GetSPDForces(mPDTargetPositions, mPDTargetVelocities);
 		for(int j = 0; j < num_body_nodes; j++) {
 			int idx = mCharacter->GetSkeleton()->getBodyNode(j)->getParentJoint()->getIndexInSkeleton(0);
 			int dof = mCharacter->GetSkeleton()->getBodyNode(j)->getParentJoint()->getNumDofs();
@@ -172,7 +194,8 @@ Step()
 			torque.block(idx, 0, dof, 1) = std::max(-torquelim, std::min(torquelim, torque_norm)) * torque.block(idx, 0, dof, 1).normalized();
 		}
 
-		mCharacter->GetSkeleton()->setForces(torque);
+		if (!dart::math::isNan(torque))
+			mCharacter->GetSkeleton()->setForces(torque);
 		mWorld->step(false);	
 		mTimeElapsed += 1;
 	}
@@ -189,12 +212,33 @@ Step()
 
 	this->UpdateTerminalInfo();
 
+
+	auto collisionSolver = mWorld->getConstraintSolver();
+
+	// bullet collide has error
+	this->mLastCollision = collisionSolver->getLastCollisionResult();
+	this->mLastContacts.clear();
+
+	for (auto contact: this->mLastCollision.getContacts()){
+		// get contacts at the end of step and write collision info somewhere
+		auto co1 = contact.collisionObject1;
+		auto co2 = contact.collisionObject2;
+
+		auto sf1 = co1->getShapeFrame()->getName();
+		auto sf2 = co2->getShapeFrame()->getName();
+
+		this->mLastContacts.insert(make_pair(make_pair(sf1, sf2), contact.force));
+		// contact check could be done for both side instead?
+		// this->mLastContacts.insert(make_pair(make_pair(sf2, sf1), -contact.force));
+	}
+
 	if(mRecord) {
 		SaveStepInfo();
 	}
 
 	mPrevTargetPositions = mTargetPositions;
 
+	return true;
 }
 
 void
@@ -250,15 +294,39 @@ UpdateTerminalInfo()
 
 
 	// check nan
-	if(dart::math::isNan(p)){
-		mIsNanAtTerminal = true;
-		mIsTerminal = true;
-		terminationReason = 3;
-	}
-	if(dart::math::isNan(v)){
-		mIsNanAtTerminal = true;
-		mIsTerminal = true;
-		terminationReason = 4;
+	// if(dart::math::isNan(p)){
+	// 	mIsNanAtTerminal = true;
+	// 	mIsTerminal = true;
+	// 	terminationReason = 3;
+	// }
+	// if(dart::math::isNan(v)){
+	// 	mIsNanAtTerminal = true;
+	// 	mIsTerminal = true;
+	// 	terminationReason = 4;
+	// }
+	for(int i = 0; i < mWorld->getNumSkeletons(); i++){
+		auto skel = mWorld->getSkeleton(i);
+		Eigen::VectorXd p = skel->getPositions();
+		Eigen::VectorXd v = skel->getVelocities();
+		
+		if(dart::math::isNan(skel->getConstraintForces())){
+			mIsNanAtTerminal = true;
+			mIsTerminal = true;
+			terminationReason = 6;
+			std::cout << terminationReason << " " << skel->getName() <<std::endl;
+		}
+		if(dart::math::isNan(p)){
+			mIsNanAtTerminal = true;
+			mIsTerminal = true;
+			terminationReason = 3;
+			std::cout << terminationReason << " " << skel->getName() <<std::endl;
+		}
+		if(dart::math::isNan(v)){
+			mIsNanAtTerminal = true;
+			mIsTerminal = true;
+			terminationReason = 4;
+			std::cout << terminationReason << " " << skel->getName() <<std::endl;
+		}
 	}
 
 	if(!mRecord && root_pos_diff.norm() > TERMINAL_ROOT_DIFF_THRESHOLD){
@@ -466,7 +534,7 @@ Controller::
 GetState()
 {
 	// State Component : Joint_angle, Joint_velocity, up_vector_angle, p_next,
-	if(mIsTerminal && terminationReason != 8){
+	if(IsTerminalState() && IsNanAtTerminal() && terminationReason != 8){
 		return Eigen::VectorXd::Zero(mNumState);
 	}
 	dart::dynamics::SkeletonPtr skel = mCharacter->GetSkeleton();
@@ -582,19 +650,19 @@ Reset(bool RSI)
 	if(RSI) {
 		this->mCurrentFrame = (int) dart::math::Random::uniform(0.0, mReferenceManager->GetPhaseLength()-5.0);
 	}
-	// else {
-	// 	this->mCurrentFrame = 0; // 0;
-	// 	this->mParamRewardTrajectory = 0;
-	// 	this->mTrackingRewardTrajectory = 0;
-	// 	mFitness.sum_contact = 0;
-	// 	mFitness.sum_slide = 0;
-	// 	mFitness.sum_hand_ct = 0;
-	// 	mFitness.hand_ct_cnt = 0;
-	// 	mFitness.sum_pos.resize(skel->getNumDofs());
-	// 	mFitness.sum_vel.resize(skel->getNumDofs());
-	// 	mFitness.sum_pos.setZero();
-	// 	mFitness.sum_vel.setZero();
-	// }
+	else {
+		this->mCurrentFrame = 0; // 0;
+		// this->mParamRewardTrajectory = 0;
+		// this->mTrackingRewardTrajectory = 0;
+		// mFitness.sum_contact = 0;
+		// mFitness.sum_slide = 0;
+		// mFitness.sum_hand_ct = 0;
+		// mFitness.hand_ct_cnt = 0;
+		// mFitness.sum_pos.resize(skel->getNumDofs());
+		// mFitness.sum_vel.resize(skel->getNumDofs());
+		// mFitness.sum_pos.setZero();
+		// mFitness.sum_vel.setZero();
+	}
 
 	this->mCurrentFrameOnPhase = this->mCurrentFrame;
 	this->mStartFrame = this->mCurrentFrame;
@@ -641,23 +709,6 @@ Reset(bool RSI)
 
 	this->mStartRoot = this->mCharacter->GetSkeleton()->getPositions().segment<3>(3);
 	this->mRootZeroDiff= mRootZero.segment<3>(3) - mReferenceManager->GetMotion(mCurrentFrameOnPhase)->GetPosition().segment<3>(3);
-	
-	// dbg_LeftPoints= std::vector<Eigen::Vector3d>();
-	// dbg_RightPoints= std::vector<Eigen::Vector3d>();
-	// dbg_LeftConstraintPoint= Eigen::Vector3d::Zero();
-	// dbg_RightConstraintPoint= Eigen::Vector3d::Zero();
-	
-	// // std::cout<<"RSI : "<<mCurrentFrame<<std::endl;
-	// if(leftHandConstraint && mCurrentFrame <30) removeHandFromBar(true);
-	// if(rightHandConstraint && mCurrentFrame <30) removeHandFromBar(false);
-
-	// //45, 59
-	// left_detached= (mCurrentFrame >=37) ? true: false; 
-	// right_detached= (mCurrentFrame >=51) ? true: false;
-
-	// min_hand = 10000;
-
-
 }
 
 bool

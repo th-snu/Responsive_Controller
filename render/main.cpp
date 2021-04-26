@@ -19,15 +19,15 @@ int main(int argc, char ** argv)
 	std::cout<<"ESC : exit"<<std::endl;
 
 	std::string ppo="", bvh="", reg="";
-       static struct option long_options[] =
+	static struct option long_options[] =
     {
-    {"bvh", required_argument,        0, '1'},
-    {"ppo", required_argument,        0, '2'},
+		{"bvh", required_argument,        NULL, '1'},
+		{"ppo", required_argument,        NULL, '2'},
     }; 
   	int option_index = 0;
   	while (1)
     {
-  		auto c = getopt_long (argc, argv, "12:",
+  		auto c = getopt_long(argc, argv, "12:",
                        long_options, &option_index);
       	if (c == -1)
         	break;

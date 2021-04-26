@@ -19,7 +19,7 @@ def matrix_to_str(mat):
 		s += '(' + vector_to_str(m) + ')'
 	return s
 class Monitor(object):
-	def __init__(self, ref, num_slaves, directory,plot=True):
+	def __init__(self, ref, num_slaves, directory,plot=True,screen=False):
 		self.env = Env(ref, directory, num_slaves)
 		self.num_slaves = self.env.num_slaves
 		self.sim_env = self.env.sim_env
@@ -153,7 +153,7 @@ class Monitor(object):
 			print_list.append('total episode count : {}'.format(self.num_episodes))
 			print_list.append('total transition count : {}'.format(self.num_transitions))
 			t_per_e = 0
-			if self.num_episodes is not 0:
+			if self.num_episodes != 0:
 				t_per_e = self.num_transitions / self.num_episodes
 
 			print_list.append('total transition per episodes : {:.2f}'.format(t_per_e))
@@ -162,7 +162,7 @@ class Monitor(object):
 			print_list.append('transition count : {}'.format(self.num_transitions_per_iteration))
 			
 			t_per_e = 0
-			if self.num_episodes_per_iteration is not 0:
+			if self.num_episodes_per_iteration != 0:
 				t_per_e = self.num_transitions_per_iteration / self.num_episodes_per_iteration
 			self.transition_per_episodes.append(t_per_e)
 
@@ -171,7 +171,7 @@ class Monitor(object):
 			print_list.append('max episode length : {}'.format(self.max_episode_length))
 
 			te_per_t  = 0
-			if self.num_transitions_per_iteration is not 0:
+			if self.num_transitions_per_iteration != 0:
 				te_per_t = self.total_frames_elapsed / self.num_transitions_per_iteration;
 			print_list.append('frame elapsed per transition : {:.2f}'.format(te_per_t))
 			# if self.adaptive:

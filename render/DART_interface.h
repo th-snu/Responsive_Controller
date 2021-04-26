@@ -38,6 +38,8 @@ void DrawBodyNode(const dart::dynamics::SkeletonPtr& skel,
 	std::string body_name, 
 	int type=0);
 
+void DrawMarker(const dart::dynamics::Marker* marker);
+
 };
 
 #endif
