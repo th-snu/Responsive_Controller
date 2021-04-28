@@ -4,33 +4,11 @@ using namespace dart::dynamics;
 namespace DPhy
 {
 
-// for bullet collision detector
-bool Controller::collide (const dart::dynamics::BodyNode* bn1,
-	const dart::dynamics::BodyNode* bn2){
-	auto collisionEngine = mWorld->getConstraintSolver()->getCollisionDetector();
-	auto collisionGroup = mWorld->getConstraintSolver()->getCollisionGroup();
-
-	dart::collision::CollisionOption option;
-	dart::collision::CollisionResult result;
-	bool collision = collisionGroup->collide(option, &result);
-
-	for (auto contact: result.getContacts()){
-		// get contacts at the end of step and write collision info somewhere
-		auto co1 = contact.collisionObject1;
-		auto co2 = contact.collisionObject2;
-
-		auto sf1 = co1->getShapeFrame()->getName();
-	}
-
-	return true;
-}
-
 Controller::Controller(ReferenceManager* ref, std::string character_path, bool record, int id)
 	:mControlHz(30),mSimulationHz(150),mCurrentFrame(0),
 	w_p(0.35),w_v(0.1),w_ee(0.3),w_com(0.25),
 	terminationReason(-1),mIsNanAtTerminal(false), mIsTerminal(false)
 {
-
 	initPhysicsEnv();
 	this->mRescaleParameter = std::make_tuple(1.0, 1.0, 1.0);
 	this->mRecord = record;
@@ -124,6 +102,32 @@ initPhysicsEnv()
 	this->mWorld->addSkeleton(this->mGround);
 }
 
+void
+Controller::
+SimStep()
+{
+	int num_body_nodes = mInterestedDof / 3;
+	// mCharacter->GetSkeleton()->setSPDTarget(mPDTargetPositions, 600, 49);
+	// mWorld->step(false);
+	
+	// torque limit
+	Eigen::VectorXd torque = mCharacter->GetSPDForces(mPDTargetPositions, mPDTargetVelocities);
+	for(int j = 0; j < num_body_nodes; j++) {
+		int idx = mCharacter->GetSkeleton()->getBodyNode(j)->getParentJoint()->getIndexInSkeleton(0);
+		int dof = mCharacter->GetSkeleton()->getBodyNode(j)->getParentJoint()->getNumDofs();
+		std::string name = mCharacter->GetSkeleton()->getBodyNode(j)->getName();
+		double torquelim = mCharacter->GetTorqueLimit(name) * 1.5;
+		double torque_norm = torque.block(idx, 0, dof, 1).norm();
+		
+		torque.block(idx, 0, dof, 1) = std::max(-torquelim, std::min(torquelim, torque_norm)) * torque.block(idx, 0, dof, 1).normalized();
+	}
+
+	if (!dart::math::isNan(torque))
+		mCharacter->GetSkeleton()->setForces(torque);
+	mWorld->step(false);
+	mTimeElapsed += 1;
+}
+
 bool 
 Controller::
 Step()
@@ -178,26 +182,7 @@ Step()
 	Eigen::VectorXd torque;
 	
 	for(int i = 0; i < this->mSimPerCon; i++){
-
-		// mCharacter->GetSkeleton()->setSPDTarget(mPDTargetPositions, 600, 49);
-		// mWorld->step(false);
-		
-		// torque limit
-		Eigen::VectorXd torque = mCharacter->GetSPDForces(mPDTargetPositions, mPDTargetVelocities);
-		for(int j = 0; j < num_body_nodes; j++) {
-			int idx = mCharacter->GetSkeleton()->getBodyNode(j)->getParentJoint()->getIndexInSkeleton(0);
-			int dof = mCharacter->GetSkeleton()->getBodyNode(j)->getParentJoint()->getNumDofs();
-			std::string name = mCharacter->GetSkeleton()->getBodyNode(j)->getName();
-			double torquelim = mCharacter->GetTorqueLimit(name) * 1.5;
-			double torque_norm = torque.block(idx, 0, dof, 1).norm();
-			
-			torque.block(idx, 0, dof, 1) = std::max(-torquelim, std::min(torquelim, torque_norm)) * torque.block(idx, 0, dof, 1).normalized();
-		}
-
-		if (!dart::math::isNan(torque))
-			mCharacter->GetSkeleton()->setForces(torque);
-		mWorld->step(false);	
-		mTimeElapsed += 1;
+		this->SimStep();
 	}
 
 	if(this->mCurrentFrameOnPhase > mReferenceManager->GetPhaseLength()){
@@ -217,20 +202,6 @@ Step()
 
 	// bullet collide has error
 	this->mLastCollision = collisionSolver->getLastCollisionResult();
-	this->mLastContacts.clear();
-
-	for (auto contact: this->mLastCollision.getContacts()){
-		// get contacts at the end of step and write collision info somewhere
-		auto co1 = contact.collisionObject1;
-		auto co2 = contact.collisionObject2;
-
-		auto sf1 = co1->getShapeFrame()->getName();
-		auto sf2 = co2->getShapeFrame()->getName();
-
-		this->mLastContacts.insert(make_pair(make_pair(sf1, sf2), contact.force));
-		// contact check could be done for both side instead?
-		// this->mLastContacts.insert(make_pair(make_pair(sf2, sf1), -contact.force));
-	}
 
 	if(mRecord) {
 		SaveStepInfo();
@@ -256,8 +227,8 @@ SaveStepInfo()
 	bool leftContact = CheckCollisionWithGround("LeftFoot") || CheckCollisionWithGround("LeftToe");
 
 	mRecordFootContact.push_back(std::make_pair(rightContact, leftContact));
-
 }
+
 void
 Controller::
 UpdateTerminalInfo()
@@ -294,39 +265,15 @@ UpdateTerminalInfo()
 
 
 	// check nan
-	// if(dart::math::isNan(p)){
-	// 	mIsNanAtTerminal = true;
-	// 	mIsTerminal = true;
-	// 	terminationReason = 3;
-	// }
-	// if(dart::math::isNan(v)){
-	// 	mIsNanAtTerminal = true;
-	// 	mIsTerminal = true;
-	// 	terminationReason = 4;
-	// }
-	for(int i = 0; i < mWorld->getNumSkeletons(); i++){
-		auto skel = mWorld->getSkeleton(i);
-		Eigen::VectorXd p = skel->getPositions();
-		Eigen::VectorXd v = skel->getVelocities();
-		
-		if(dart::math::isNan(skel->getConstraintForces())){
-			mIsNanAtTerminal = true;
-			mIsTerminal = true;
-			terminationReason = 6;
-			std::cout << terminationReason << " " << skel->getName() <<std::endl;
-		}
-		if(dart::math::isNan(p)){
-			mIsNanAtTerminal = true;
-			mIsTerminal = true;
-			terminationReason = 3;
-			std::cout << terminationReason << " " << skel->getName() <<std::endl;
-		}
-		if(dart::math::isNan(v)){
-			mIsNanAtTerminal = true;
-			mIsTerminal = true;
-			terminationReason = 4;
-			std::cout << terminationReason << " " << skel->getName() <<std::endl;
-		}
+	if(dart::math::isNan(p)){
+		mIsNanAtTerminal = true;
+		mIsTerminal = true;
+		terminationReason = 3;
+	}
+	if(dart::math::isNan(v)){
+		mIsNanAtTerminal = true;
+		mIsTerminal = true;
+		terminationReason = 4;
 	}
 
 	if(!mRecord && root_pos_diff.norm() > TERMINAL_ROOT_DIFF_THRESHOLD){
@@ -534,7 +481,7 @@ Controller::
 GetState()
 {
 	// State Component : Joint_angle, Joint_velocity, up_vector_angle, p_next,
-	if(IsTerminalState() && IsNanAtTerminal() && terminationReason != 8){
+	if(mIsTerminal && terminationReason != 8){
 		return Eigen::VectorXd::Zero(mNumState);
 	}
 	dart::dynamics::SkeletonPtr skel = mCharacter->GetSkeleton();
@@ -747,6 +694,24 @@ CheckCollisionWithGround(std::string bodyName){
 	}
 }
 
+std::unordered_map<std::pair<std::string, std::string>, Eigen::Vector3d, Controller::pair_hash> Controller::getLastContacts(){
+	std::unordered_map<std::pair<std::string, std::string>, Eigen::Vector3d, Controller::pair_hash> contacts;
+
+	for (auto contact: this->mLastCollision.getContacts()){
+		// get contacts at the end of step and write collision info somewhere
+		auto co1 = contact.collisionObject1;
+		auto co2 = contact.collisionObject2;
+
+		auto sf1 = co1->getShapeFrame()->getName();
+		auto sf2 = co2->getShapeFrame()->getName();
+
+		contacts.insert(make_pair(make_pair(sf1, sf2), contact.force));
+		// contact check could be done for both side instead?
+		// this->mLastContacts.insert(make_pair(make_pair(sf2, sf1), -contact.force));
+	}
+
+	return contacts;
+}
 
 void
 Controller::SaveDisplayedData(std::string directory, bool bvh) {

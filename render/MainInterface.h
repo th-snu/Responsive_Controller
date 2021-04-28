@@ -16,7 +16,7 @@
 #include "DART_interface.h"
 #include "BVH.h"
 #include "Character.h"
-#include "Controller.h"
+#include "ReactiveController.h"
 #include "ReferenceManager.h"
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
@@ -50,6 +50,7 @@ public:
 
 	void perturb();
 	void removeFirstPerturbance();
+
 	bool addObject(const dart::dynamics::SkeletonPtr& object);
 	
 protected:
@@ -84,6 +85,7 @@ protected:
 
 	std::vector<dart::dynamics::SkeletonPtr> perturbance;
 	std::vector<int> perturbance_timestamp;
+	bool perturbance_expected;
 
 	dart::dynamics::SkeletonPtr mBall;
 

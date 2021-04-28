@@ -79,6 +79,14 @@
         "graphicscontext": "cpp",
         "object": "cpp",
         "operationthread": "cpp",
-        "stats": "cpp"
+        "stats": "cpp",
+        "light": "cpp",
+        "matrixd": "cpp",
+        "matrixf": "cpp",
+        "node": "cpp",
+        "primitiveset": "cpp",
+        "stateset": "cpp",
+        "valueobject": "cpp",
+        "block": "cpp"
     }
 }
