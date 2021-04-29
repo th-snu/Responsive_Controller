@@ -87,6 +87,9 @@
         "primitiveset": "cpp",
         "stateset": "cpp",
         "valueobject": "cpp",
-        "block": "cpp"
+        "block": "cpp",
+        "nodevisitor": "cpp",
+        "timer": "cpp",
+        "uniform": "cpp"
     }
 }

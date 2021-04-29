@@ -58,8 +58,8 @@ DrawSkeleton(
 				GUI::DrawSphere(0.1);
 			}
 
-			for (auto i = 0u; i < bn->getNumMarkers(); ++i)
-				DrawMarker(bn->getMarker(i));
+			// for (auto i = 0u; i < bn->getNumMarkers(); ++i)
+			// 	DrawMarker(bn->getMarker(i));
 		}
 		glPopMatrix();
 

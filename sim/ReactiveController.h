@@ -19,14 +19,16 @@ public:
 
 	Eigen::VectorXd GetVirtualPositions(int idx) { return this->mRecordVirtualPosition[idx]; }
 	Eigen::VectorXd GetVirtualVelocities(int idx) { return this->mRecordVirtualVelocity[idx]; }
-	Eigen::VectorXd GetEndEffectorStatePosAndVel(const Eigen::VectorXd pos, const Eigen::VectorXd vel) override;
+	// Eigen::VectorXd GetEndEffectorStatePosAndVel(const Eigen::VectorXd pos, const Eigen::VectorXd vel) override;
 
-	void SetPDTarget() override;
-	Eigen::VectorXd GetState() override;
+	// void SetPDTarget() override;
+	// Eigen::VectorXd GetState() override;
 	void UpdatePerturbance(std::vector<dart::dynamics::SkeletonPtr> vec){ perturbance = vec; }
 
 	void ClearRecord() override;
 	void SaveStepInfo() override;
+
+	void Reset(bool RSI);
 	
 	std::unordered_map<std::pair<std::string, std::string>, Eigen::Vector3d, pair_hash> getLastContacts();
 
@@ -36,6 +38,9 @@ private:
 	std::vector<Eigen::VectorXd> d_expected_positions;
 	std::vector<Eigen::VectorXd> d_expected_velocities;
 	std::vector<int> contact_timestamp;
+
+	Eigen::VectorXd last_position_bias;
+	Eigen::VectorXd d_position_bias;
 
 	// Weighted some of the delta expected states is added to the actual state.
 	Eigen::VectorXd perceived_positions;

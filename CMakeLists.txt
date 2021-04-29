@@ -15,6 +15,9 @@ add_compile_options(-lm)
 
 add_definitions(-DPROJECT_DIR="${CMAKE_HOME_DIRECTORY}")
 
+# for eigen intellisense
+add_definitions(-DENABLE_PRECOMPILED_HEADERS=OFF)
+
 add_definitions(-DBOOST_ERROR_CODE_HEADER_ONLY)
 set(CMAKE_MODULE_PATH "${CMAKE_HOME_DIRECTORY}/cmake_module")
 find_package(DART REQUIRED COMPONENTS gui optimizer-ipopt collision-bullet collision-ode CONFIG)

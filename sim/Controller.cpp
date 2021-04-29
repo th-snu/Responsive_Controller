@@ -4,7 +4,7 @@ using namespace dart::dynamics;
 namespace DPhy
 {
 
-Controller::Controller(ReferenceManager* ref, std::string character_path, bool record, int id)
+Controller::Controller(ReferenceManager* ref, const std::string character_path, bool record, int id)
 	:mControlHz(30),mSimulationHz(150),mCurrentFrame(0),
 	w_p(0.35),w_v(0.1),w_ee(0.3),w_com(0.25),
 	terminationReason(-1),mIsNanAtTerminal(false), mIsTerminal(false)
@@ -128,17 +128,9 @@ SimStep()
 	mTimeElapsed += 1;
 }
 
-bool 
+void
 Controller::
-Step()
-{	
-	if(IsTerminalState()) {
-		std::cout<<mCurrentFrame<<" , Terminal state"<<std::endl;
-		return false;
-	}
-
-	Eigen::VectorXd s = this->GetState();
-
+SetPDTarget(){
 	int num_body_nodes = mInterestedDof / 3;
 	int dof = this->mCharacter->GetSkeleton()->getNumDofs(); 
 
@@ -178,8 +170,20 @@ Step()
 		mPDTargetPositions.block(idx, 0, dof, 1) += mActions.block(count_dof, 0, dof, 1);
 		count_dof += dof;
 	}
+}
 
-	Eigen::VectorXd torque;
+bool 
+Controller::
+Step()
+{	
+	if(IsTerminalState()) {
+		std::cout<<mCurrentFrame<<" , Terminal state"<<std::endl;
+		return false;
+	}
+
+	//Eigen::VectorXd s = this->GetState();
+
+	SetPDTarget();
 	
 	for(int i = 0; i < this->mSimPerCon; i++){
 		this->SimStep();
@@ -196,12 +200,6 @@ Step()
 	this->UpdateReward();
 
 	this->UpdateTerminalInfo();
-
-
-	auto collisionSolver = mWorld->getConstraintSolver();
-
-	// bullet collide has error
-	this->mLastCollision = collisionSolver->getLastCollisionResult();
 
 	if(mRecord) {
 		SaveStepInfo();
@@ -304,6 +302,7 @@ UpdateTerminalInfo()
 	//skel->computeForwardKinematics(true,true,false);
 
 }
+
 void 
 Controller::
 ClearRecord() 
@@ -692,25 +691,6 @@ CheckCollisionWithGround(std::string bodyName){
 		std::cout << "check collision : bad body name" << std::endl;
 		return false;
 	}
-}
-
-std::unordered_map<std::pair<std::string, std::string>, Eigen::Vector3d, Controller::pair_hash> Controller::getLastContacts(){
-	std::unordered_map<std::pair<std::string, std::string>, Eigen::Vector3d, Controller::pair_hash> contacts;
-
-	for (auto contact: this->mLastCollision.getContacts()){
-		// get contacts at the end of step and write collision info somewhere
-		auto co1 = contact.collisionObject1;
-		auto co2 = contact.collisionObject2;
-
-		auto sf1 = co1->getShapeFrame()->getName();
-		auto sf2 = co2->getShapeFrame()->getName();
-
-		contacts.insert(make_pair(make_pair(sf1, sf2), contact.force));
-		// contact check could be done for both side instead?
-		// this->mLastContacts.insert(make_pair(make_pair(sf2, sf1), -contact.force));
-	}
-
-	return contacts;
 }
 
 void
