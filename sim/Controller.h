@@ -147,7 +147,7 @@ protected:
 			return h1 ^ h2;  
 		}
 	};
-	std::unordered_map<std::pair<std::string, std::string>, Eigen::Vector3d> mLastContacts;
+	std::unordered_map<std::pair<std::string, std::string>, Eigen::Vector3d, pair_hash> mLastContacts;
 
 	double mAdaptiveStep;
 	int mRewardDof;
