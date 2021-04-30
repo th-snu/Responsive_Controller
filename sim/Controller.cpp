@@ -26,10 +26,10 @@ Controller::Controller(ReferenceManager* ref, const std::string character_path, 
 	this->mCurrentFrameOnPhase = 0;
 
 
-	Eigen::VectorXd kp(this->mCharacter->GetSkeleton()->getNumDofs());
-	Eigen::VectorXd kv(this->mCharacter->GetSkeleton()->getNumDofs());
-	kp.setZero();
-	kv.setZero();
+	// Eigen::VectorXd kp(this->mCharacter->GetSkeleton()->getNumDofs());
+	// Eigen::VectorXd kv(this->mCharacter->GetSkeleton()->getNumDofs());
+	// kp.setZero();
+	// kv.setZero();
 	
 	this->mCharacter->SetPDParameters(600, 49);
 

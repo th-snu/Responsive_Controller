@@ -92,16 +92,13 @@ void ReactionTestInterface::
 	SetFrame(int n)
 {
 	if (render_bvh){
-		if(mMotion_bvh[n].hasNaN()) std::cout << "NaN in mMotion_bvh, Frame " << n << std::endl;
-		else mSkel->setPositions(mMotion_bvh[n]);
+		if(!mMotion_bvh[n].hasNaN()) mSkel->setPositions(mMotion_bvh[n]);
 	}
 	if (render_sim){
-		if(mMotion_sim[n].hasNaN()) std::cout << "NaN in mMotion_sim, Frame " << n << std::endl;
-		else mSkel_sim->setPositions(mMotion_sim[n]);
+		if(!mMotion_sim[n].hasNaN()) mSkel_sim->setPositions(mMotion_sim[n]);
 	}
 	if (render_virtual){
-		if(mMotion_virtual[n].hasNaN()) std::cout << "NaN in mMotion_virtual, Frame " << n << std::endl;
-		else mSkel_virtual->setPositions(mMotion_virtual[n]);
+		if(!mMotion_virtual[n].hasNaN()) mSkel_virtual->setPositions(mMotion_virtual[n]);
 	}
 }
 
