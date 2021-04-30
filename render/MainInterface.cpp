@@ -22,24 +22,24 @@ MainInterface::
 	this->last_mouse_y = 0;
 
 	this->mDisplayTimeout = 33;
-	this->begin = std::chrono::steady_clock::now();
 	this->on_animation = false;
 
 	DPhy::Character *ref = new DPhy::Character(character_path);
 	mReferenceManager = new DPhy::ReferenceManager(ref);
 	mReferenceManager->LoadMotionFromBVH(std::string("/motion/") + bvh);
 
-	std::vector<Eigen::VectorXd> pos;
+	// std::vector<Eigen::VectorXd> pos;
 
-	phase = 0;
+	// phase = 0;
 
-	for (int i = 0; i < 1000; i++)
-	{
-		Eigen::VectorXd p = mReferenceManager->GetPosition(phase);
-		pos.push_back(p);
-		phase += mReferenceManager->GetTimeStep(phase);
-	}
-	// UpdateMotion(pos, "bvh");
+	// for (int i = 0; i < 1000; i++)
+	// {
+	// 	Eigen::VectorXd p = mReferenceManager->GetPosition(phase);
+	// 	pos.push_back(p);
+	// 	phase += mReferenceManager->GetTimeStep(phase);
+	// }
+
+	// mMotion_bvh = pos;
 
 	this->mCurFrame = 0;
 	this->mTotalFrame = 0;
@@ -55,8 +55,7 @@ MainInterface::
 	if (ppo != "")
 	{
 		this->mSkel_sim = DPhy::SkeletonBuilder::BuildFromFile(character_path).first;
-
-		DPhy::SetSkeletonColor(mSkel, Eigen::Vector4d(164. / 255., 235. / 255., 13. / 255., 1.0));
+		DPhy::SetSkeletonColor(mSkel_sim, Eigen::Vector4d(164. / 255., 235. / 255., 13. / 255., 1.0));
 
 		initNetworkSetting(ppo);
 		this->render_sim = true;
@@ -80,16 +79,18 @@ void MainInterface::
 	DrawSkeletons();
 	glutSwapBuffers();
 
-	//GUI::DrawStringOnScreen(0.8, 0.9, std::to_string(mCurFrame), true, Eigen::Vector3d::Zero());
+	GUI::DrawStringOnScreen(0.8, 0.9, std::to_string(mCurFrame), true, Eigen::Vector3d::Zero());
 }
 
 void MainInterface::
 	SetFrame(int n)
 {
-	if (render_bvh)
-		mSkel->setPositions(mMotion_bvh[n]);
-	if (render_sim)
-		mSkel_sim->setPositions(mMotion_sim[n]);
+	if (render_bvh){
+		if(!mMotion_bvh[n].hasNaN()) mSkel->setPositions(mMotion_bvh[n]);
+	}
+	if (render_sim){
+		if(!mMotion_sim[n].hasNaN()) mSkel_sim->setPositions(mMotion_sim[n]);
+	}
 }
 
 void MainInterface::
@@ -141,17 +142,6 @@ void MainInterface::
 	Py_Initialize();
 	try
 	{
-		//   	if(reg != "") {
-		// 	p::object reg_main = p::import("regression");
-		//        this->mRegression = reg_main.attr("Regression")();
-		//        std::string path = std::string(PROJECT_DIR)+ std::string("/network/output/") + DPhy::split(reg, '/')[0] + std::string("/");
-		//        this->mRegression.attr("initRun")(path, mReferenceManager->GetParamGoal().rows() + 1, mReferenceManager->GetDOF() + 1);
-		// 	mRegressionMemory->LoadParamSpace(path + "param_space");
-		//        mParamRange = mReferenceManager->GetParamRange();
-
-		//        path = std::string(PROJECT_DIR)+ std::string("/network/output/") + DPhy::split(reg, '/')[0] + std::string("/");
-		// //	mRegressionMemory->SaveContinuousParamSpace(path + "param_cspace");
-		//   	}
 		if (ppo != "")
 		{
 			this->mController = new DPhy::Controller(mReferenceManager, this->character_path, true); //adaptive=true, bool parametric=true, bool record=true
@@ -180,27 +170,30 @@ void MainInterface::
 void MainInterface::
 	step()
 {
+	if(this->mController->IsTerminalState()) return;
 	Eigen::VectorXd state = this->mController->GetState();
+
 	py::array_t<double> na = this->mPPO.attr("run")(DPhy::toNumPyArray(state));
 	Eigen::VectorXd action = DPhy::toEigenVector(na, this->mController->GetNumAction());
 
 	this->mController->SetAction(action);
+
 	if(!this->mController->Step()){
 		return;
 	}
 
 	this->mTiming.push_back(this->mController->GetCurrentLength());
 
-	int idx = this->mController->GetRecordSize() - 1;
+	mTotalFrame = this->mController->GetRecordSize();
 
-	Eigen::VectorXd position = this->mController->GetPositions(idx);
-	Eigen::VectorXd position_bvh = this->mController->GetBVHPositions(idx);
-	position_bvh[3] -= 1.5;
+	for (int i = this->mMotion_bvh.size(); i < mTotalFrame; i++){
+		Eigen::VectorXd position = this->mController->GetPositions(i);
+		Eigen::VectorXd position_bvh = this->mController->GetBVHPositions(i);
+		position_bvh[3] -= 1.5;
 
-	mMotion_sim.push_back(position);
-	mMotion_bvh.push_back(position_bvh);
-
-	mTotalFrame = idx - 1;
+		mMotion_sim.push_back(position);
+		mMotion_bvh.push_back(position_bvh);
+	}
 }
 
 void MainInterface::
@@ -208,84 +201,15 @@ void MainInterface::
 {
 	this->render_sim = true;
 
-	int count = 0;
 	mController->Reset(false);
 	this->mTiming = std::vector<double>();
+
 	step();
 }
 
 void MainInterface::
 	skeyboard(int key, int x, int y)
 {
-
-	// if(on_animation) {
-	//        if (key == GLUT_KEY_LEFT) {
-	//        	std::cout<<"LEFT"<<std::endl;
-	//            if(speed_type ==0)return;
-	//            BVH *temp_bvh = current_bvh;
-	//            if (motion_type == 0)
-	//                motion_type = mCharacter->getMotionrange() - 1;
-	//            else
-	//                motion_type--;
-	//            current_bvh = mCharacter->getBVH(speed_type, motion_type);
-	//            current_bvh = mCharacter->MotionBlend(frame_no, temp_bvh, current_bvh);
-	//            begin = std::chrono::steady_clock::now();
-	//        }
-	//        if (key == GLUT_KEY_RIGHT) {
-	//        	std::cout<<"RIGHT"<<std::endl;
-	//            if(speed_type ==0)return;
-	//            BVH *temp_bvh = current_bvh;
-	//            if (motion_type == mCharacter->getMotionrange() - 1)
-	//                motion_type = 0;
-	//            else
-	//                motion_type++;
-	//            current_bvh = mCharacter->getBVH(speed_type, motion_type);
-	//            current_bvh = mCharacter->MotionBlend(frame_no,temp_bvh, current_bvh);
-	//            begin = std::chrono::steady_clock::now();
-	//        }
-	//        if (key == GLUT_KEY_UP) {
-	//        	std::cout<<"UP"<<std::endl;
-	//            BVH *temp_bvh = current_bvh;
-	//            if (speed_type == mCharacter->getSpeedrange() - 1)
-	//                speed_type = 0;
-	//            else
-	//                speed_type++;
-	//            current_bvh = mCharacter->getBVH(speed_type, motion_type);
-	//            current_bvh = mCharacter->MotionBlend(frame_no,temp_bvh, current_bvh);
-	//            begin = std::chrono::steady_clock::now();
-	//        }
-	//        if (key == GLUT_KEY_DOWN) {
-	//        	std::cout<<"DOWN"<<std::endl;
-	//            BVH *temp_bvh = current_bvh;
-	//            if (speed_type == 0)
-	//                speed_type = mCharacter->getSpeedrange() - 1;
-	//            else
-	//                speed_type--;
-	//            current_bvh = mCharacter->getBVH(speed_type, motion_type);
-	//            current_bvh = mCharacter->MotionBlend(frame_no,temp_bvh, current_bvh);
-	//            begin = std::chrono::steady_clock::now();
-	//        }
-	//    }
-}
-
-void MainInterface::
-	UpdateMotion(std::vector<Eigen::VectorXd> motion, const char *type)
-{
-	if (!strcmp(type, "bvh"))
-	{
-		mMotion_bvh = motion;
-	}
-	else if (!strcmp(type, "sim"))
-	{
-		mMotion_sim = motion;
-	}
-
-	if (mTotalFrame == 0)
-		mTotalFrame = motion.size();
-	else if (mTotalFrame > motion.size())
-	{
-		mTotalFrame = motion.size();
-	}
 }
 
 void MainInterface::
@@ -307,26 +231,31 @@ void MainInterface::
 }
 
 void MainInterface::
+	removeFirstPerturbance()
+{
+	auto pfirst = perturbance.front();
+	// remove pfirst from the world
+	mController->GetWorld()->removeSkeleton(pfirst);
+	perturbance.erase(perturbance.begin());
+	perturbance_timestamp.erase(perturbance_timestamp.begin());
+}
+
+void MainInterface::
 	perturb()
 {
+	if (this->mController->IsTerminalState()) return;
+
 	auto ball = mBall->cloneSkeleton();
 	bool success = addObject(ball);
 
 	if (success)
 	{
-		ball->getBodyNode(0)->setFrictionCoeff(0.5);
+		// ball->getBodyNode(0)->setFrictionCoeff(0.5);
 		perturbance.push_back(ball);
-		perturbance_timeout.push_back(std::chrono::steady_clock::now());
+		perturbance_timestamp.push_back(this->mCurFrame);
 		
 		// double elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count()/1000000.;
-		if (perturbance.size() > 10)
-		{
-			auto pfirst = perturbance.front();
-			// remove pfirst from the world
-			mController->GetWorld()->removeSkeleton(pfirst);
-			perturbance.erase(perturbance.begin());
-			perturbance_timeout.erase(perturbance_timeout.begin());
-		}
+		if (perturbance.size() > 10) removeFirstPerturbance();
 	}
 }
 
@@ -387,9 +316,9 @@ bool MainInterface::
 	else
 	{
 		// or refuse to add the object if it is in collision
-		std::cout << "The new object spawned in a collision. "
-				  << "It will not be added to the world." << std::endl;
-		return false;
+		// std::cout << "The new object spawned in a collision. "
+		// 		  << "It will not be added to the world." << std::endl;
+		return addObject(object);
 	}
 
 	// Create reference frames for setting the initial velocity
@@ -457,18 +386,22 @@ void MainInterface::
 void MainInterface::
 	Reset()
 {
-	while (perturbance.size() > 0)
+	while (!perturbance.empty())
 	{
 		auto pLast = perturbance.back();
 		// remove pfirst from the world
 		mController->GetWorld()->removeSkeleton(pLast);
-		perturbance.erase(perturbance.end());
+		perturbance.pop_back();
+		perturbance_timestamp.pop_back();
 	}
-	UpdateMotion(std::vector<Eigen::VectorXd>(), "bvh");
-	UpdateMotion(std::vector<Eigen::VectorXd>(), "sim");
+	this->mMotion_bvh = std::vector<Eigen::VectorXd>();
+	this->mMotion_sim = std::vector<Eigen::VectorXd>();
+	mTotalFrame = 0;
+	mCurFrame = 0;
 	mController->Reset(false);
-	this->step();
-	this->mCurFrame = 0;
+	this->mTiming = std::vector<double>();
+
+	step();
 }
 
 void MainInterface::
@@ -488,6 +421,18 @@ void MainInterface::
 		this->render_bvh = (this->render_bvh == false);
 	if (key == '2')
 		this->render_sim = (this->render_sim == false);
+	if (!on_animation){
+		if (key == 'a')
+			if (mCurFrame > 0) mCurFrame -= 1;
+		if (key == 'd') {
+			while (this->mCurFrame >= this->mTotalFrame - 1 && !this->mController->IsTerminalState())
+				this->step();
+
+			if (this->mCurFrame < this->mTotalFrame - 1){
+				this->mCurFrame++;
+			}
+		}
+	}
 	if (key == 't')
 		this->perturb();
 	if (key == 'r')
@@ -508,9 +453,13 @@ void MainInterface::
 		if (this->mCurFrame < this->mTotalFrame - 1){
 			this->mCurFrame++;
 		}
-		SetFrame(this->mCurFrame);
+
+		while (!perturbance_timestamp.empty() && perturbance_timestamp[0] + 60 < this->mCurFrame){
+			removeFirstPerturbance();
+		}
 	}
-	else SetFrame(this->mCurFrame);
+
+	SetFrame(this->mCurFrame);
 
 	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 	double elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000.;

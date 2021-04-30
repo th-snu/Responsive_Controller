@@ -77,10 +77,9 @@ protected:
 	int my;
 	int frame_no;
 	int mDisplayTimeout;
-	std::chrono::steady_clock::time_point begin;
 
 	std::vector<dart::dynamics::SkeletonPtr> perturbance;
-	std::vector<std::chrono::steady_clock::time_point> perturbance_timeout;
+	std::vector<int> perturbance_timestamp;
 	
 	dart::dynamics::SkeletonPtr mBall;
 
@@ -98,6 +97,7 @@ protected:
 	bool render_sim=false;
 
 	void perturb();
+	void removeFirstPerturbance();
 	bool addObject(const dart::dynamics::SkeletonPtr& object);
 	int mSkelCount;
 
