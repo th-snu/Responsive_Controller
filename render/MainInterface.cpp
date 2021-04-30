@@ -63,7 +63,6 @@ MainInterface::
 	}
 
 	this->mBall = createBall();
-	this->perturbance_expected = false;
 }
 
 void MainInterface::
@@ -142,9 +141,20 @@ void MainInterface::
 	Py_Initialize();
 	try
 	{
+		//   	if(reg != "") {
+		// 	p::object reg_main = p::import("regression");
+		//        this->mRegression = reg_main.attr("Regression")();
+		//        std::string path = std::string(PROJECT_DIR)+ std::string("/network/output/") + DPhy::split(reg, '/')[0] + std::string("/");
+		//        this->mRegression.attr("initRun")(path, mReferenceManager->GetParamGoal().rows() + 1, mReferenceManager->GetDOF() + 1);
+		// 	mRegressionMemory->LoadParamSpace(path + "param_space");
+		//        mParamRange = mReferenceManager->GetParamRange();
+
+		//        path = std::string(PROJECT_DIR)+ std::string("/network/output/") + DPhy::split(reg, '/')[0] + std::string("/");
+		// //	mRegressionMemory->SaveContinuousParamSpace(path + "param_cspace");
+		//   	}
 		if (ppo != "")
 		{
-			this->mController = new DPhy::ReactiveController(mReferenceManager, this->character_path, true); //adaptive=true, bool parametric=true, bool record=true
+			this->mController = new DPhy::Controller(mReferenceManager, this->character_path, true); //adaptive=true, bool parametric=true, bool record=true
 			//mController->SetGoalParameters(mReferenceManager->GetParamCur());
 
 			py::object sys_module = py::module::import("sys");
@@ -170,9 +180,7 @@ void MainInterface::
 void MainInterface::
 	step()
 {
-	if(this->mController->IsTerminalState()) return;
 	Eigen::VectorXd state = this->mController->GetState();
-
 	py::array_t<double> na = this->mPPO.attr("run")(DPhy::toNumPyArray(state));
 	Eigen::VectorXd action = DPhy::toEigenVector(na, this->mController->GetNumAction());
 
@@ -209,6 +217,55 @@ void MainInterface::
 void MainInterface::
 	skeyboard(int key, int x, int y)
 {
+
+	// if(on_animation) {
+	//        if (key == GLUT_KEY_LEFT) {
+	//        	std::cout<<"LEFT"<<std::endl;
+	//            if(speed_type ==0)return;
+	//            BVH *temp_bvh = current_bvh;
+	//            if (motion_type == 0)
+	//                motion_type = mCharacter->getMotionrange() - 1;
+	//            else
+	//                motion_type--;
+	//            current_bvh = mCharacter->getBVH(speed_type, motion_type);
+	//            current_bvh = mCharacter->MotionBlend(frame_no, temp_bvh, current_bvh);
+	//            begin = std::chrono::steady_clock::now();
+	//        }
+	//        if (key == GLUT_KEY_RIGHT) {
+	//        	std::cout<<"RIGHT"<<std::endl;
+	//            if(speed_type ==0)return;
+	//            BVH *temp_bvh = current_bvh;
+	//            if (motion_type == mCharacter->getMotionrange() - 1)
+	//                motion_type = 0;
+	//            else
+	//                motion_type++;
+	//            current_bvh = mCharacter->getBVH(speed_type, motion_type);
+	//            current_bvh = mCharacter->MotionBlend(frame_no,temp_bvh, current_bvh);
+	//            begin = std::chrono::steady_clock::now();
+	//        }
+	//        if (key == GLUT_KEY_UP) {
+	//        	std::cout<<"UP"<<std::endl;
+	//            BVH *temp_bvh = current_bvh;
+	//            if (speed_type == mCharacter->getSpeedrange() - 1)
+	//                speed_type = 0;
+	//            else
+	//                speed_type++;
+	//            current_bvh = mCharacter->getBVH(speed_type, motion_type);
+	//            current_bvh = mCharacter->MotionBlend(frame_no,temp_bvh, current_bvh);
+	//            begin = std::chrono::steady_clock::now();
+	//        }
+	//        if (key == GLUT_KEY_DOWN) {
+	//        	std::cout<<"DOWN"<<std::endl;
+	//            BVH *temp_bvh = current_bvh;
+	//            if (speed_type == 0)
+	//                speed_type = mCharacter->getSpeedrange() - 1;
+	//            else
+	//                speed_type--;
+	//            current_bvh = mCharacter->getBVH(speed_type, motion_type);
+	//            current_bvh = mCharacter->MotionBlend(frame_no,temp_bvh, current_bvh);
+	//            begin = std::chrono::steady_clock::now();
+	//        }
+	//    }
 }
 
 void MainInterface::
@@ -354,7 +411,7 @@ bool MainInterface::
 	Eigen::Vector3d direction = charskel->getCOM() - object->getCOM() + Eigen::Vector3d(mDistribution(mMT), mDistribution(mMT), mDistribution(mMT)) / 5.0;
 	direction.normalize();
 
-	speed = (mDistribution(mMT) * 5 + 5) / 1.0;
+	speed = (mDistribution(mMT) * 5 + 5) / 10.0;
 
 	angular_speed = mDistribution(mMT) * maximum_start_w;
 
@@ -439,8 +496,6 @@ void MainInterface::
 		this->render_sim = (this->render_sim == false);
 	if (key == 't')
 		this->perturb();
-	if (key == 'y')
-		this->perturbance_expected = !(this->perturbance_expected);
 	if (key == 'r')
 		Reset();
 }

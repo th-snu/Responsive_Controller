@@ -21,23 +21,14 @@ class Controller
 public:
 	Controller(ReferenceManager* ref, std::string character_path, bool record=false, int id=0);
 
-	struct pair_hash {
-		template <class T1, class T2>
-		std::size_t operator () (const std::pair<T1,T2> &p) const {
-			auto h1 = std::hash<T1>{}(p.first);
-			auto h2 = std::hash<T2>{}(p.second);
-
-			// Mainly for demonstration purposes, i.e. works but is overly simple
-			// In the real world, use sth. like boost.hash_combine
-			return h1 ^ h2;  
-		}
-	};
-	std::unordered_map<std::pair<std::string, std::string>, Eigen::Vector3d, pair_hash> getLastContacts();
-
+	
 	void initPhysicsEnv();
 
 	bool Step();
-	void SimStep();
+
+
+	bool collide (const dart::dynamics::BodyNode* group1,
+		const dart::dynamics::BodyNode* group2);
 
 	const dart::simulation::WorldPtr& GetWorld() {return mWorld;}
 	const dart::dynamics::SkeletonPtr& GetSkeleton() {return this->mCharacter->GetSkeleton();}
@@ -112,6 +103,8 @@ protected:
 	double mCurrentFrameOnPhase;
 	double mPrevFrameOnPhase;
 	double mTrackingRewardTrajectory;
+
+
 	
 	double mTimeElapsed;
 	int mStartFrame;
@@ -142,6 +135,19 @@ protected:
 
 	std::unique_ptr<dart::collision::CollisionGroup> mCGEL, mCGER, mCGL, mCGR, mCGG, mCGHR, mCGHL, mCGOBJ; 
 	dart::collision::CollisionResult mLastCollision;
+
+	struct pair_hash {
+		template <class T1, class T2>
+		std::size_t operator () (const std::pair<T1,T2> &p) const {
+			auto h1 = std::hash<T1>{}(p.first);
+			auto h2 = std::hash<T2>{}(p.second);
+
+			// Mainly for demonstration purposes, i.e. works but is overly simple
+			// In the real world, use sth. like boost.hash_combine
+			return h1 ^ h2;  
+		}
+	};
+	std::unordered_map<std::pair<std::string, std::string>, Eigen::Vector3d, pair_hash> mLastContacts;
 
 	double mAdaptiveStep;
 	int mRewardDof;
