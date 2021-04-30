@@ -406,7 +406,7 @@ bool MainInterface::
 	Eigen::Vector3d direction = charskel->getCOM() - object->getCOM() + Eigen::Vector3d(mDistribution(mMT), mDistribution(mMT), mDistribution(mMT)) / 5.0;
 	direction.normalize();
 
-	speed = (mDistribution(mMT) * 5 + 5) / 10.0;
+	speed = (mDistribution(mMT) * 5 + 5) / 1.0;
 
 	angular_speed = mDistribution(mMT) * maximum_start_w;
 
