@@ -1,10 +1,10 @@
 
-#include "ReactionTestInterface.h"
+#include "MainInterface.h"
 #include "CollisionTest.h"
 #include <iostream>
 
-ReactionTestInterface::
-	ReactionTestInterface(std::string bvh, std::string ppo) : GLUTWindow(),
+MainInterface::
+	MainInterface(std::string bvh, std::string ppo) : GLUTWindow(),
 													  mRD(),
 													  mMT(mRD()),
 													  mDistribution(-1.0, std::nextafter(1.0, 2.0)),
@@ -29,18 +29,17 @@ ReactionTestInterface::
 	mReferenceManager = new DPhy::ReferenceManager(ref);
 	mReferenceManager->LoadMotionFromBVH(std::string("/motion/") + bvh);
 
-	// std::vector<Eigen::VectorXd> pos;
+	std::vector<Eigen::VectorXd> pos;
 
-	// phase = 0;
+	phase = 0;
 
-	// for (int i = 0; i < 1000; i++)
-	// {
-	// 	Eigen::VectorXd p = mReferenceManager->GetPosition(phase);
-	// 	pos.push_back(p);
-	// 	phase += mReferenceManager->GetTimeStep(phase);
-	// }
-
-	// mMotion_bvh = pos;
+	for (int i = 0; i < 1000; i++)
+	{
+		Eigen::VectorXd p = mReferenceManager->GetPosition(phase);
+		pos.push_back(p);
+		phase += mReferenceManager->GetTimeStep(phase);
+	}
+	// UpdateMotion(pos, "bvh");
 
 	this->mCurFrame = 0;
 	this->mTotalFrame = 0;
@@ -56,21 +55,18 @@ ReactionTestInterface::
 	if (ppo != "")
 	{
 		this->mSkel_sim = DPhy::SkeletonBuilder::BuildFromFile(character_path).first;
-		DPhy::SetSkeletonColor(mSkel_sim, Eigen::Vector4d(164. / 255., 235. / 255., 13. / 255., 1.0));
+
+		DPhy::SetSkeletonColor(mSkel, Eigen::Vector4d(164. / 255., 235. / 255., 13. / 255., 1.0));
 
 		initNetworkSetting(ppo);
 		this->render_sim = true;
-
-		this->mSkel_virtual = DPhy::SkeletonBuilder::BuildFromFile(character_path).first;
-		DPhy::SetSkeletonColor(mSkel_virtual, Eigen::Vector4d(13. / 255., 235. / 255., 164. / 255., 0.5));
-
-		this->render_virtual = true;
 	}
 
 	this->mBall = createBall();
+	this->perturbance_expected = false;
 }
 
-void ReactionTestInterface::
+void MainInterface::
 	display()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
@@ -85,27 +81,19 @@ void ReactionTestInterface::
 	DrawSkeletons();
 	glutSwapBuffers();
 
-	GUI::DrawStringOnScreen(0.8, 0.9, std::to_string(mCurFrame), true, Eigen::Vector3d::Zero());
+	//GUI::DrawStringOnScreen(0.8, 0.9, std::to_string(mCurFrame), true, Eigen::Vector3d::Zero());
 }
 
-void ReactionTestInterface::
+void MainInterface::
 	SetFrame(int n)
 {
-	if (render_bvh){
-		if(mMotion_bvh[n].hasNaN()) std::cout << "NaN in mMotion_bvh, Frame " << n << std::endl;
-		else mSkel->setPositions(mMotion_bvh[n]);
-	}
-	if (render_sim){
-		if(mMotion_sim[n].hasNaN()) std::cout << "NaN in mMotion_sim, Frame " << n << std::endl;
-		else mSkel_sim->setPositions(mMotion_sim[n]);
-	}
-	if (render_virtual){
-		if(mMotion_virtual[n].hasNaN()) std::cout << "NaN in mMotion_virtual, Frame " << n << std::endl;
-		else mSkel_virtual->setPositions(mMotion_virtual[n]);
-	}
+	if (render_bvh)
+		mSkel->setPositions(mMotion_bvh[n]);
+	if (render_sim)
+		mSkel_sim->setPositions(mMotion_sim[n]);
 }
 
-void ReactionTestInterface::
+void MainInterface::
 	DrawSkeletons()
 {
 	glPushMatrix();
@@ -114,14 +102,12 @@ void ReactionTestInterface::
 		GUI::DrawSkeleton(this->mSkel, 0);
 	if (render_sim)
 		GUI::DrawSkeleton(this->mSkel_sim, 0);
-	if (render_virtual)
-		GUI::DrawSkeleton(this->mSkel_virtual, 0);
 	for (int i = 0; i < perturbance.size(); i++)
 		GUI::DrawSkeleton(perturbance[i], 0);
 	glPopMatrix();
 }
 
-void ReactionTestInterface::
+void MainInterface::
 	DrawGround()
 {
 	float size = 3.0f;
@@ -150,7 +136,7 @@ void ReactionTestInterface::
 	glEnd();
 }
 
-void ReactionTestInterface::
+void MainInterface::
 	initNetworkSetting(std::string ppo)
 {
 	Py_Initialize();
@@ -181,7 +167,7 @@ void ReactionTestInterface::
 	}
 }
 
-void ReactionTestInterface::
+void MainInterface::
 	step()
 {
 	if(this->mController->IsTerminalState()) return;
@@ -191,45 +177,61 @@ void ReactionTestInterface::
 	Eigen::VectorXd action = DPhy::toEigenVector(na, this->mController->GetNumAction());
 
 	this->mController->SetAction(action);
-
 	if(!this->mController->Step()){
 		return;
 	}
 
 	this->mTiming.push_back(this->mController->GetCurrentLength());
 
-	mTotalFrame = this->mController->GetRecordSize();
+	int idx = this->mController->GetRecordSize() - 1;
 
-	for (int i = this->mMotion_bvh.size(); i < mTotalFrame; i++){
-		Eigen::VectorXd position = this->mController->GetPositions(i);
-		Eigen::VectorXd position_virtual = this->mController->GetVirtualPositions(i);
-		Eigen::VectorXd position_bvh = this->mController->GetBVHPositions(i);
-		position_bvh[3] -= 1.5;
-		position_virtual[3] += 1.5;
+	Eigen::VectorXd position = this->mController->GetPositions(idx);
+	Eigen::VectorXd position_bvh = this->mController->GetBVHPositions(idx);
+	position_bvh[3] -= 1.5;
 
-		mMotion_sim.push_back(position);
-		mMotion_bvh.push_back(position_bvh);
-		mMotion_virtual.push_back(position_virtual);
-	}
+	mMotion_sim.push_back(position);
+	mMotion_bvh.push_back(position_bvh);
+
+	mTotalFrame = idx - 1;
 }
 
-void ReactionTestInterface::
+void MainInterface::
 	RunPPO()
 {
 	this->render_sim = true;
 
+	int count = 0;
 	mController->Reset(false);
 	this->mTiming = std::vector<double>();
-
 	step();
 }
 
-void ReactionTestInterface::
+void MainInterface::
 	skeyboard(int key, int x, int y)
 {
 }
 
-void ReactionTestInterface::
+void MainInterface::
+	UpdateMotion(std::vector<Eigen::VectorXd> motion, const char *type)
+{
+	if (!strcmp(type, "bvh"))
+	{
+		mMotion_bvh = motion;
+	}
+	else if (!strcmp(type, "sim"))
+	{
+		mMotion_sim = motion;
+	}
+
+	if (mTotalFrame == 0)
+		mTotalFrame = motion.size();
+	else if (mTotalFrame > motion.size())
+	{
+		mTotalFrame = motion.size();
+	}
+}
+
+void MainInterface::
 	motion(int mx, int my)
 {
 	if ((drag_mouse_l == 0) && (drag_mouse_r == 0))
@@ -247,7 +249,7 @@ void ReactionTestInterface::
 	last_mouse_y = my;
 }
 
-void ReactionTestInterface::
+void MainInterface::
 	removeFirstPerturbance()
 {
 	auto pfirst = perturbance.front();
@@ -257,7 +259,7 @@ void ReactionTestInterface::
 	perturbance_timestamp.erase(perturbance_timestamp.begin());
 }
 
-void ReactionTestInterface::
+void MainInterface::
 	perturb()
 {
 	if (this->mController->IsTerminalState()) return;
@@ -273,12 +275,10 @@ void ReactionTestInterface::
 		
 		// double elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count()/1000000.;
 		if (perturbance.size() > 10) removeFirstPerturbance();
-		
-		this->mController->UpdatePerturbance(perturbance);
 	}
 }
 
-bool ReactionTestInterface::
+bool MainInterface::
 	/// Add an object to the world and toss it at the wall
 	addObject(const dart::dynamics::SkeletonPtr &object)
 {
@@ -371,7 +371,7 @@ bool ReactionTestInterface::
 	return true;
 }
 
-void ReactionTestInterface::
+void MainInterface::
 	mouse(int button, int state, int mx, int my)
 {
 	if (button == 3 || button == 4)
@@ -402,7 +402,7 @@ void ReactionTestInterface::
 		drag_mouse_r = 0;
 	}
 }
-void ReactionTestInterface::
+void MainInterface::
 	Reset()
 {
 	while (!perturbance.empty())
@@ -412,20 +412,15 @@ void ReactionTestInterface::
 		mController->GetWorld()->removeSkeleton(pLast);
 		perturbance.pop_back();
 		perturbance_timestamp.pop_back();
-		this->mController->UpdatePerturbance(perturbance);
 	}
-	this->mMotion_bvh = std::vector<Eigen::VectorXd>();
-	this->mMotion_sim = std::vector<Eigen::VectorXd>();
-	this->mMotion_virtual = std::vector<Eigen::VectorXd>();
-	mTotalFrame = 0;
-	mCurFrame = 0;
+	UpdateMotion(std::vector<Eigen::VectorXd>(), "bvh");
+	UpdateMotion(std::vector<Eigen::VectorXd>(), "sim");
 	mController->Reset(false);
-	this->mTiming = std::vector<double>();
-
-	step();
+	this->step();
+	this->mCurFrame = 0;
 }
 
-void ReactionTestInterface::
+void MainInterface::
 	keyboard(unsigned char key, int mx, int my)
 {
 	if (key == 27)
@@ -442,29 +437,15 @@ void ReactionTestInterface::
 		this->render_bvh = (this->render_bvh == false);
 	if (key == '2')
 		this->render_sim = (this->render_sim == false);
-	if (key == '3')
-		this->render_virtual = (this->render_virtual == false);
-	if (!on_animation){
-		if (key == 'a')
-			if (mCurFrame > 0) mCurFrame -= 1;
-		if (key == 'd') {
-			while (this->mCurFrame >= this->mTotalFrame - 1 && !this->mController->IsTerminalState())
-				this->step();
-
-			if (this->mCurFrame < this->mTotalFrame - 1){
-				this->mCurFrame++;
-			}
-		}
-	}
 	if (key == 't')
 		this->perturb();
 	if (key == 'y')
-		this->mController->setFeedbackDelayed(!this->mController->getFeedbackDelayed());
+		this->perturbance_expected = !(this->perturbance_expected);
 	if (key == 'r')
 		Reset();
 }
 
-void ReactionTestInterface::
+void MainInterface::
 	Timer(int value)
 {
 	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
@@ -478,14 +459,13 @@ void ReactionTestInterface::
 		if (this->mCurFrame < this->mTotalFrame - 1){
 			this->mCurFrame++;
 		}
+		SetFrame(this->mCurFrame);
 
 		while (!perturbance_timestamp.empty() && perturbance_timestamp[0] + 60 < this->mCurFrame){
 			removeFirstPerturbance();
 		}
-		this->mController->UpdatePerturbance(perturbance);
 	}
-
-	SetFrame(this->mCurFrame);
+	else SetFrame(this->mCurFrame);
 
 	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 	double elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000.;
@@ -494,7 +474,7 @@ void ReactionTestInterface::
 	glutPostRedisplay();
 }
 
-void ReactionTestInterface::
+void MainInterface::
 	reshape(int w, int h)
 {
 	glViewport(0, 0, w, h);

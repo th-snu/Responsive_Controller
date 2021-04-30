@@ -23,12 +23,12 @@
 
 namespace py = pybind11;
 
-class ReactionTestInterface : public GLUTWindow
+class MainInterface : public GLUTWindow
 {
 public:
 
-	ReactionTestInterface();
-	ReactionTestInterface(std::string bvh, std::string ppo);
+	MainInterface();
+	MainInterface(std::string bvh, std::string ppo);
 
 	void DrawGround();
 	void display();
@@ -44,6 +44,7 @@ public:
 	void DrawSkeletons();
 
  	void initNetworkSetting(std::string ppo);
+ 	void UpdateMotion(std::vector<Eigen::VectorXd> motion, const char* type);
  	void RunPPO();
 	void step();
 
@@ -57,13 +58,13 @@ protected:
 	Camera* 		mCamera;
 	//BVH* 			current_bvh;
 	DPhy::ReferenceManager*			mReferenceManager;
-	DPhy::ReactiveController* 				mController;
+	DPhy::Controller* 				mController;
 
 	std::string character_path;
 
 	dart::dynamics::SkeletonPtr 	mSkel;
+	dart::dynamics::SkeletonPtr 	mSkel_reg;
 	dart::dynamics::SkeletonPtr 	mSkel_sim;
-	dart::dynamics::SkeletonPtr 	mSkel_virtual;
 
 	int     drag_mouse_r;
 	int     drag_mouse_l;
@@ -74,7 +75,7 @@ protected:
 	std::vector<double>	mTiming; 
 	std::vector<Eigen::VectorXd> mMotion_bvh;
 	std::vector<Eigen::VectorXd> mMotion_sim;
-	std::vector<Eigen::VectorXd> mMotion_virtual;
+	std::vector<Eigen::VectorXd> mMotion_reg;
 
 	int mx;
 	int my;
@@ -84,6 +85,7 @@ protected:
 
 	std::vector<dart::dynamics::SkeletonPtr> perturbance;
 	std::vector<int> perturbance_timestamp;
+	bool perturbance_expected;
 
 	dart::dynamics::SkeletonPtr mBall;
 
@@ -99,7 +101,6 @@ protected:
 
 	bool render_bvh=false;
 	bool render_sim=false;
-	bool render_virtual=false;
 
 	int mSkelCount;
 

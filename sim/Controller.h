@@ -19,7 +19,7 @@ namespace DPhy
 class Controller
 {
 public:
-	Controller(ReferenceManager* ref, const std::string character_path, bool record=false, int id=0);
+	Controller(ReferenceManager* ref, std::string character_path, bool record=false, int id=0);
 
 	struct pair_hash {
 		template <class T1, class T2>
@@ -32,12 +32,12 @@ public:
 			return h1 ^ h2;  
 		}
 	};
+	std::unordered_map<std::pair<std::string, std::string>, Eigen::Vector3d, pair_hash> getLastContacts();
 
 	void initPhysicsEnv();
 
-	virtual void SetPDTarget();
 	bool Step();
-	virtual void SimStep();
+	void SimStep();
 
 	const dart::simulation::WorldPtr& GetWorld() {return mWorld;}
 	const dart::dynamics::SkeletonPtr& GetSkeleton() {return this->mCharacter->GetSkeleton();}
@@ -49,14 +49,14 @@ public:
 	double GetReward() {return mRewardParts[0]; }
 	std::vector<std::string> GetRewardLabels() {return mRewardLabels; }
 
-	virtual Eigen::VectorXd GetEndEffectorStatePosAndVel(const Eigen::VectorXd pos, const Eigen::VectorXd vel);
-	virtual Eigen::VectorXd GetState();
+	Eigen::VectorXd GetEndEffectorStatePosAndVel(const Eigen::VectorXd pos, const Eigen::VectorXd vel);
+	Eigen::VectorXd GetState();
 
 	bool CheckCollisionWithGround(std::string bodyName);
 
 	void UpdateTerminalInfo();
-	virtual void SaveStepInfo();
-	virtual void ClearRecord();
+	void SaveStepInfo();
+	void ClearRecord();
 	bool IsTerminalState() {return this->mIsTerminal; }
 	bool IsNanAtTerminal() {return this->mIsNanAtTerminal;}
 
