@@ -30,4 +30,4 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR})
 
 pybind11_add_module(SimEnv ${srcs})
 target_link_libraries(SimEnv PRIVATE ${DART_LIBRARIES} ${TinyXML_LIBRARIES} ${PYTHON_LIBRARIES} sim)
-set_target_properties(SimEnv PROPERTIES PREFIX "" SUFFIX ".so")
+set_target_properties(SimEnv PROPERTIES PREFIX "" )

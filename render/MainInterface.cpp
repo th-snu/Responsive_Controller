@@ -307,31 +307,26 @@ void MainInterface::
 }
 
 void MainInterface::
-	removeFirstPerturbance()
-{
-	auto pfirst = perturbance.front();
-	// remove pfirst from the world
-	mController->GetWorld()->removeSkeleton(pfirst);
-	perturbance.erase(perturbance.begin());
-	perturbance_timestamp.erase(perturbance_timestamp.begin());
-}
-
-void MainInterface::
 	perturb()
 {
-	if (this->mController->IsTerminalState()) return;
-
 	auto ball = mBall->cloneSkeleton();
 	bool success = addObject(ball);
 
 	if (success)
 	{
-		// ball->getBodyNode(0)->setFrictionCoeff(0.5);
+		ball->getBodyNode(0)->setFrictionCoeff(0.5);
 		perturbance.push_back(ball);
-		perturbance_timestamp.push_back(this->mCurFrame);
+		perturbance_timeout.push_back(std::chrono::steady_clock::now());
 		
 		// double elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count()/1000000.;
-		if (perturbance.size() > 10) removeFirstPerturbance();
+		if (perturbance.size() > 10)
+		{
+			auto pfirst = perturbance.front();
+			// remove pfirst from the world
+			mController->GetWorld()->removeSkeleton(pfirst);
+			perturbance.erase(perturbance.begin());
+			perturbance_timeout.erase(perturbance_timeout.begin());
+		}
 	}
 }
 
@@ -392,9 +387,9 @@ bool MainInterface::
 	else
 	{
 		// or refuse to add the object if it is in collision
-		// std::cout << "The new object spawned in a collision. "
-		// 		  << "It will not be added to the world." << std::endl;
-		return addObject(object);
+		std::cout << "The new object spawned in a collision. "
+				  << "It will not be added to the world." << std::endl;
+		return false;
 	}
 
 	// Create reference frames for setting the initial velocity
@@ -462,13 +457,12 @@ void MainInterface::
 void MainInterface::
 	Reset()
 {
-	while (!perturbance.empty())
+	while (perturbance.size() > 0)
 	{
 		auto pLast = perturbance.back();
 		// remove pfirst from the world
 		mController->GetWorld()->removeSkeleton(pLast);
-		perturbance.pop_back();
-		perturbance_timestamp.pop_back();
+		perturbance.erase(perturbance.end());
 	}
 	UpdateMotion(std::vector<Eigen::VectorXd>(), "bvh");
 	UpdateMotion(std::vector<Eigen::VectorXd>(), "sim");
@@ -515,10 +509,6 @@ void MainInterface::
 			this->mCurFrame++;
 		}
 		SetFrame(this->mCurFrame);
-
-		while (!perturbance_timestamp.empty() && perturbance_timestamp[0] + 60 < this->mCurFrame){
-			removeFirstPerturbance();
-		}
 	}
 	else SetFrame(this->mCurFrame);
 
