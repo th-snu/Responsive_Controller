@@ -1,6 +1,7 @@
 #include "dart/collision/bullet/bullet.hpp"
 #include "ReactiveController.h"
 using namespace dart::dynamics;
+using namespace std;
 namespace DPhy
 {
 
@@ -14,6 +15,7 @@ ReactiveController(ReferenceManager* ref, const std::string character_path, bool
 	this->mVirtualCharacter->GetSkeleton()->setTimeStep(this->mCharacter->GetSkeleton()->getTimeStep());
 	this->mVirtualWorld->addSkeleton(this->mVirtualCharacter->GetSkeleton());
 	this->mVirtualCharacter->SetPDParameters(600, 49);
+	this->mVirtualCharacter->GetSkeleton()->disableSelfCollisionCheck();
 
 	auto collisionEngine = mVirtualWorld->getConstraintSolver()->getCollisionDetector();
 	collisionEngine->createCollisionGroup(this->mVirtualCharacter->GetSkeleton()->getBodyNode("LeftFoot"));
@@ -208,20 +210,19 @@ SimStep()
 
 	int num_body_nodes = mInterestedDof / 3;
 
-	// // step virtual world to update forces
-	// mVirtualWorld->setTimeStep(EPSILON);
-	// mVirtualWorld->step(false);
-	// this->mVirtualWorld->setTimeStep(1.0/(double)mSimulationHz);
-
 	Eigen::VectorXd torque = mVirtualCharacter->GetSPDForces(mPDTargetPositions, mPDTargetVelocities);
-	// std::cout << "q: " << (mVirtualCharacter->GetSkeleton()->getPositions() - mCharacter->GetSkeleton()->getPositions()).transpose() << std::endl;
-	// std::cout << "v: " << (mVirtualCharacter->GetSkeleton()->getVelocities() - mCharacter->GetSkeleton()->getVelocities()).transpose() << std::endl;
+	// std::cout << "dq: " << (mVirtualCharacter->GetSkeleton()->getPositions() - mPDTargetPositions).transpose() << std::endl;
+	std::cout << "v: " << (mCharacter->GetSkeleton()->getVelocities()).norm() << std::endl;
+	std::cout << "vv: " << (mVirtualCharacter->GetSkeleton()->getVelocities()).norm() << std::endl;
+	std::cout << "tv: " << (mPDTargetVelocities).norm() << std::endl;
+	std::cout << "tq: " << (mPDTargetPositions).norm() << std::endl;
 	// std::cout << "g: " << (mVirtualCharacter->GetSkeleton()->getGravityForces() - GetSkeleton()->getGravityForces()).transpose() << std::endl;
-	// std::cout << "f: " << (mVirtualCharacter->GetSkeleton()->getConstraintForces() ).transpose() << std::endl;
+	// std::cout << "vf: " << (mVirtualCharacter->GetSkeleton()->getConstraintForces() ).norm() << std::endl;
+	// std::cout << "f: " << (GetSkeleton()->getConstraintForces() ).norm() << std::endl;
+	std::cout << "t: " << (torque ).norm() << std::endl;
 	// std::cout << "df: " << (GetSkeleton()->getConstraintForces() ).transpose() << std::endl;
 	// auto cTorque = mCharacter->GetSPDForces(mPDTargetPositions, mPDTargetVelocities);
 	// std::cout << "dTorque: " << (cTorque - torque).transpose() <<std::endl;
-
 
 	for(int j = 0; j < num_body_nodes; j++) {
 		int idx = mVirtualCharacter->GetSkeleton()->getBodyNode(j)->getParentJoint()->getIndexInSkeleton(0);
@@ -241,8 +242,10 @@ SimStep()
 
 	mCharacter->GetSkeleton()->setForces(torque);
 
+	UpdatePerceptionInfo();
 	if (body_contact){
 		auto char_skel = mVirtualCharacter->GetSkeleton();
+		auto state = char_skel->getState();
 		char_skel->setVelocities(this->GetSkeleton()->getVelocities());
 		char_skel->setPositions(this->GetSkeleton()->getPositions());
 
@@ -253,22 +256,24 @@ SimStep()
 
 		d_expected_positions.push_back(char_skel->getPositions() - this->GetSkeleton()->getPositions());
 		d_expected_velocities.push_back(char_skel->getVelocities() - this->GetSkeleton()->getVelocities());
+
 		contact_timestamp.push_back(this->mTimeElapsed);
+		char_skel->setState(state);
 	}
 	else {
 		mWorld->step(false);
 	}
 	mVirtualCharacter->GetSkeleton()->setForces(torque);
-	UpdatePerceptionInfo();
+	mVirtualWorld->step();
 	mTimeElapsed += 1;
 
 	auto collisionSolver = mWorld->getConstraintSolver();
 	this->mLastCollision = collisionSolver->getLastCollisionResult();
+	this->mLastContacts = getLastContacts();
 }
 
 std::unordered_map<std::pair<std::string, std::string>, Eigen::Vector3d, Controller::pair_hash> ReactiveController::getLastContacts(){
 	std::unordered_map<std::pair<std::string, std::string>, Eigen::Vector3d, Controller::pair_hash> contacts;
-
 	for (auto contact: this->mLastCollision.getContacts()){
 		// get contacts at the end of step and write collision info somewhere
 		auto co1 = contact.collisionObject1;
@@ -304,22 +309,16 @@ bool ReactiveController::HumanoidCollide (){
 		}
 	}
 
-	auto last_contact = this->getLastContacts();
-	std::cout << "check" <<std::endl;
+	auto last_contact = this->mLastContacts;
 
 	for (auto s1 = humanoidNodes.begin(); s1 < humanoidNodes.end(); s1++){
-		for (auto s2 = perturbanceNodes.begin(); s1 < perturbanceNodes.end(); s1++){
-	std::cout << "find" <<std::endl;
-				std::cout << (*s1)->getName() << " " << (*s2)->getName() << std::endl;
+		for (auto s2 = perturbanceNodes.begin(); s2 < perturbanceNodes.end(); s2++){
 			auto contact = last_contact.find(std::make_pair((*s1)->getName(), (*s2)->getName()));
 			if (contact != last_contact.end() && contact->second.norm() > EPSILON) {
-	std::cout << "true" <<std::endl;
-
 				return true;
 			}
 		}
 	}
-	std::cout << "false" <<std::endl;
 
 	return false;
 }
@@ -339,7 +338,6 @@ void ReactiveController::
 		d_expected_velocities.erase(d_expected_velocities.begin());
 	}
 	
-	this->last_position_bias.setZero();
 	Eigen::VectorXd position_bias(positions.size());
 	Eigen::VectorXd velocity_bias(velocities.size());
 	position_bias.setZero();
@@ -348,6 +346,7 @@ void ReactiveController::
 	for (int i = 0; i < contact_timestamp.size(); i++){
 		int contactTimeElapsed = this->mTimeElapsed - contact_timestamp[i];
 		double weight = 1.0 - (exp(contactTimeElapsed) - 1) / (exp(mSimulationHz / 4) - 1);
+		cout << "dev: " << d_expected_velocities[i].norm() <<  ", weight: " << weight << endl;
 		auto d_v = d_expected_velocities[i] * weight;
 		velocity_bias += d_v;
 		position_bias += d_expected_positions[i] * weight + (1.0 / mSimulationHz) * d_v * contactTimeElapsed;
@@ -359,13 +358,23 @@ void ReactiveController::
 	this->last_position_bias = position_bias;
 	this->last_velocity_bias = velocity_bias;
 
-	// step world to update constraint force from the previous frame
-	vSkel->setPositions(vSkel->getPositions() + d_position_bias);
-	vSkel->setVelocities(vSkel->getVelocities() + d_velocity_bias);
-	mVirtualWorld->step(false);
+	// vSkel->setPositions(skel->getPositions() + d_position_bias);
+	// vSkel->setVelocities(vSkel->getVelocities() + d_velocity_bias);
 
 	vSkel->setPositions(positions);
 	vSkel->setVelocities(velocities);
+
+	auto collisionSolver = mVirtualWorld->getConstraintSolver();
+	for(auto contact: collisionSolver->getLastCollisionResult().getContacts()){
+		auto co1 = contact.collisionObject1;
+		auto co2 = contact.collisionObject2;
+
+		auto sf1 = co1->getShapeFrame()->getName();
+		auto sf2 = co2->getShapeFrame()->getName();
+
+		std::cout << sf1 << " / " << sf2  << " : " << contact.force << std::endl;
+	}
+	
 }
 
 void 
@@ -384,10 +393,13 @@ ClearRecord()
 	vSkel->clearExternalForces();
 	vSkel->setPositions(this->GetSkeleton()->getPositions());
 	vSkel->setVelocities(this->GetSkeleton()->getVelocities());
-	vSkel->computeForwardKinematics(true, true, false);
 	d_expected_positions.clear();
 	d_expected_velocities.clear();
 	contact_timestamp.clear();
+	last_position_bias.setZero();
+	last_velocity_bias.setZero();
+	d_position_bias.setZero();
+	this->mLastCollision.clear();
 }
 
 void

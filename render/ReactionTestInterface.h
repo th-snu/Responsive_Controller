@@ -94,6 +94,8 @@ protected:
 	int mCurFrame;
 	int mTotalFrame;
 
+	double framerate;
+
 	//p::object mRegression;
 	py::object mPPO;
 

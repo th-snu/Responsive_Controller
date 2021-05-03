@@ -83,9 +83,12 @@ void ReactionTestInterface::
 	DrawGround();
 
 	DrawSkeletons();
-	glutSwapBuffers();
 
 	GUI::DrawStringOnScreen(0.8, 0.9, std::to_string(mCurFrame), true, Eigen::Vector3d::Zero());
+	GUI::DrawStringOnScreen(0.8, 0.85, this->on_animation ? "Playing" : "Stopped", true, Eigen::Vector3d::Zero());
+	GUI::DrawStringOnScreen(0.8, 0.8, std::to_string(this->framerate) + "fps", true, Eigen::Vector3d::Zero());
+
+	glutSwapBuffers();
 }
 
 void ReactionTestInterface::
@@ -181,7 +184,9 @@ void ReactionTestInterface::
 void ReactionTestInterface::
 	step()
 {
-	if(this->mController->IsTerminalState()) return;
+	if(this->mController->IsTerminalState()) {
+		return;
+	}
 	Eigen::VectorXd state = this->mController->GetState();
 
 	py::array_t<double> na = this->mPPO.attr("run")(DPhy::toNumPyArray(state));
@@ -409,8 +414,8 @@ void ReactionTestInterface::
 		mController->GetWorld()->removeSkeleton(pLast);
 		perturbance.pop_back();
 		perturbance_timestamp.pop_back();
-		this->mController->UpdatePerturbance(perturbance);
 	}
+	this->mController->UpdatePerturbance(perturbance);
 	this->mMotion_bvh = std::vector<Eigen::VectorXd>();
 	this->mMotion_sim = std::vector<Eigen::VectorXd>();
 	this->mMotion_virtual = std::vector<Eigen::VectorXd>();
@@ -418,7 +423,6 @@ void ReactionTestInterface::
 	mCurFrame = 0;
 	mController->Reset(false);
 	this->mTiming = std::vector<double>();
-
 	step();
 }
 
@@ -486,6 +490,8 @@ void ReactionTestInterface::
 
 	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 	double elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000.;
+
+	this->framerate = 1000 * std::min(1.0 / elapsed, 1.0 / mDisplayTimeout);
 
 	glutTimerFunc(std::max(0.0, mDisplayTimeout - elapsed), TimerEvent, 1);
 	glutPostRedisplay();

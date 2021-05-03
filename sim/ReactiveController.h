@@ -33,6 +33,8 @@ public:
 	std::unordered_map<std::pair<std::string, std::string>, Eigen::Vector3d, pair_hash> getLastContacts();
 
 private:
+	dart::collision::CollisionResult mLastCollision;
+	std::unordered_map<std::pair<std::string, std::string>, Eigen::Vector3d, Controller::pair_hash> mLastContacts;
 	// Difference between the actual state and state without contact
 	// Given that controller is taking actions based on its perceived state
 	std::vector<Eigen::VectorXd> d_expected_positions;

@@ -141,7 +141,6 @@ protected:
 	std::vector<std::string> mRewardLabels;
 
 	std::unique_ptr<dart::collision::CollisionGroup> mCGEL, mCGER, mCGL, mCGR, mCGG, mCGHR, mCGHL, mCGOBJ; 
-	dart::collision::CollisionResult mLastCollision;
 
 	double mAdaptiveStep;
 	int mRewardDof;
