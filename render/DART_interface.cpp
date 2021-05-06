@@ -55,7 +55,9 @@ DrawSkeleton(
 				glColor4f(color[0], color[1], color[2], color[3]);
 				glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
 				glTranslatef(jn_com[0], jn_com[1], jn_com[2]);
-				GUI::DrawSphere(0.1);
+				// dirty code warning
+				auto ball = (dart::dynamics::EllipsoidShape *)(shapeNodes[type]->getShape().get());
+				GUI::DrawSphere(ball->getDiameters()[0]);
 			}
 
 			// for (auto i = 0u; i < bn->getNumMarkers(); ++i)

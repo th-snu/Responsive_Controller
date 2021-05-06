@@ -33,10 +33,10 @@
 
 #include "CollisionTest.h"
 
-const double default_shape_density = 1;  // kg/m^3
-const double default_shape_height = 1;    // m
-const double default_shape_width = 0.03;    // m
-const double default_skin_thickness = 1e-3; // m
+const double default_shape_density = 1000;  // kg/m^3
+const double default_shape_height = 0.1;    // m
+const double default_shape_width = 0.15;    // m
+const double default_skin_thickness = 1e-2; // m
 
 const double default_start_height = 0.4; // m
 

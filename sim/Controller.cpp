@@ -5,7 +5,7 @@ namespace DPhy
 {
 
 Controller::Controller(ReferenceManager* ref, const std::string character_path, bool record, int id)
-	:mControlHz(30),mSimulationHz(150),mCurrentFrame(0),
+	:mControlHz(30),mSimulationHz(300),mCurrentFrame(0),
 	w_p(0.35),w_v(0.1),w_ee(0.3),w_com(0.25),
 	terminationReason(-1),mIsNanAtTerminal(false), mIsTerminal(false)
 {
@@ -24,7 +24,6 @@ Controller::Controller(ReferenceManager* ref, const std::string character_path, 
 	this->mSimPerCon = mSimulationHz / mControlHz;
 	
 	this->mCurrentFrameOnPhase = 0;
-
 
 	// Eigen::VectorXd kp(this->mCharacter->GetSkeleton()->getNumDofs());
 	// Eigen::VectorXd kv(this->mCharacter->GetSkeleton()->getNumDofs());
@@ -94,7 +93,7 @@ initPhysicsEnv()
 {
 	this->mWorld = std::make_shared<dart::simulation::World>();
 	this->mWorld->setTimeStep(1.0/(double)mSimulationHz);
-	this->mWorld->setGravity(Eigen::Vector3d(0,-9.81,0));	
+	this->mWorld->setGravity(Eigen::Vector3d(0,-9.8,0));	
 	this->mWorld->getConstraintSolver()->setCollisionDetector(dart::collision::DARTCollisionDetector::create());
 	dynamic_cast<dart::constraint::BoxedLcpConstraintSolver*>(mWorld->getConstraintSolver())->setBoxedLcpSolver(std::make_shared<dart::constraint::PgsBoxedLcpSolver>());
 	this->mGround = DPhy::SkeletonBuilder::BuildFromFile(std::string(PROJECT_DIR)+std::string("/character/ground.xml")).first;

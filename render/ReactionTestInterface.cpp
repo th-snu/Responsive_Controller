@@ -2,6 +2,7 @@
 #include "ReactionTestInterface.h"
 #include "CollisionTest.h"
 #include <iostream>
+//#define REACTION_ENABLED
 
 ReactionTestInterface::
 	ReactionTestInterface(std::string bvh, std::string ppo) : GLUTWindow(),
@@ -61,10 +62,12 @@ ReactionTestInterface::
 		initNetworkSetting(ppo);
 		this->render_sim = true;
 
+		#ifdef REACTION_ENABLED
 		this->mSkel_virtual = DPhy::SkeletonBuilder::BuildFromFile(character_path).first;
 		DPhy::SetSkeletonColor(mSkel_virtual, Eigen::Vector4d(13. / 255., 235. / 255., 164. / 255., 0.5));
 
 		this->render_virtual = true;
+		#endif
 	}
 
 	this->mBall = createBall();
@@ -100,9 +103,11 @@ void ReactionTestInterface::
 	if (render_sim){
 		if(!mMotion_sim[n].hasNaN()) mSkel_sim->setPositions(mMotion_sim[n]);
 	}
+	#ifdef REACTION_ENABLED
 	if (render_virtual){
 		if(!mMotion_virtual[n].hasNaN()) mSkel_virtual->setPositions(mMotion_virtual[n]);
 	}
+	#endif
 }
 
 void ReactionTestInterface::
@@ -114,8 +119,10 @@ void ReactionTestInterface::
 		GUI::DrawSkeleton(this->mSkel, 0);
 	if (render_sim)
 		GUI::DrawSkeleton(this->mSkel_sim, 0);
+	#ifdef REACTION_ENABLED
 	if (render_virtual)
 		GUI::DrawSkeleton(this->mSkel_virtual, 0);
+	#endif
 	for (int i = 0; i < perturbance.size(); i++)
 		GUI::DrawSkeleton(perturbance[i], 0);
 	glPopMatrix();
@@ -158,7 +165,11 @@ void ReactionTestInterface::
 	{
 		if (ppo != "")
 		{
+			#ifdef REACTION_ENABLED
 			this->mController = new DPhy::ReactiveController(mReferenceManager, this->character_path, true); //adaptive=true, bool parametric=true, bool record=true
+			#else
+			this->mController = new DPhy::Controller(mReferenceManager, this->character_path, true); //adaptive=true, bool parametric=true, bool record=true
+			#endif
 			//mController->SetGoalParameters(mReferenceManager->GetParamCur());
 
 			py::object sys_module = py::module::import("sys");
@@ -204,14 +215,16 @@ void ReactionTestInterface::
 
 	for (int i = this->mMotion_bvh.size(); i < mTotalFrame; i++){
 		Eigen::VectorXd position = this->mController->GetPositions(i);
-		Eigen::VectorXd position_virtual = this->mController->GetVirtualPositions(i);
 		Eigen::VectorXd position_bvh = this->mController->GetBVHPositions(i);
 		position_bvh[3] -= 1.5;
-		position_virtual[3] += 1.5;
-
 		mMotion_sim.push_back(position);
 		mMotion_bvh.push_back(position_bvh);
+
+		#ifdef REACTION_ENABLED
+		Eigen::VectorXd position_virtual = this->mController->GetVirtualPositions(i);
+		position_virtual[3] += 1.5;
 		mMotion_virtual.push_back(position_virtual);
+		#endif
 	}
 }
 
@@ -266,6 +279,7 @@ void ReactionTestInterface::
 
 	auto ball = mBall->cloneSkeleton();
 	bool success = addObject(ball);
+	std::cout << ball->getMass() << std::endl;
 
 	if (success)
 	{
@@ -276,7 +290,9 @@ void ReactionTestInterface::
 		// double elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count()/1000000.;
 		if (perturbance.size() > 10) removeFirstPerturbance();
 		
+		#ifdef REACTION_ENABLED
 		this->mController->UpdatePerturbance(perturbance);
+		#endif
 	}
 }
 
@@ -288,7 +304,7 @@ bool ReactionTestInterface::
 	const double minimum_launch_angle = dart::math::toRadian(30.0); // rad
 	const double maximum_launch_angle = dart::math::toRadian(70.0); // rad
 	const double default_launch_angle = dart::math::toRadian(45.0); // rad
-	const double default_spawn_range = 0.9 * 3;
+	const double default_spawn_range = 0.9;
 
 	const double minimum_start_v = 2.5; // m/s
 	const double maximum_start_v = 4.0; // m/s
@@ -353,10 +369,11 @@ bool ReactionTestInterface::
 	double speed = default_start_v;
 	double angular_speed = default_start_w;
 
+	double distance = (charskel->getCOM() - object->getCOM()).norm();
 	Eigen::Vector3d direction = charskel->getCOM() - object->getCOM() + Eigen::Vector3d(mDistribution(mMT), mDistribution(mMT), mDistribution(mMT)) / 5.0;
 	direction.normalize();
 
-	speed = (mDistribution(mMT) * 5 + 5) / 1.0;
+	speed = (mDistribution(mMT) + 4.0) * distance * 3 / 5.0;
 
 	angular_speed = mDistribution(mMT) * maximum_start_w;
 
@@ -415,10 +432,13 @@ void ReactionTestInterface::
 		perturbance.pop_back();
 		perturbance_timestamp.pop_back();
 	}
-	this->mController->UpdatePerturbance(perturbance);
+	
 	this->mMotion_bvh = std::vector<Eigen::VectorXd>();
 	this->mMotion_sim = std::vector<Eigen::VectorXd>();
+	#ifdef REACTION_ENABLED
+	this->mController->UpdatePerturbance(perturbance);
 	this->mMotion_virtual = std::vector<Eigen::VectorXd>();
+	#endif
 	mTotalFrame = 0;
 	mCurFrame = 0;
 	mController->Reset(false);
@@ -443,8 +463,10 @@ void ReactionTestInterface::
 		this->render_bvh = (this->render_bvh == false);
 	if (key == '2')
 		this->render_sim = (this->render_sim == false);
+	#ifdef REACTION_ENABLED
 	if (key == '3')
 		this->render_virtual = (this->render_virtual == false);
+	#endif
 	if (!on_animation){
 		if (key == 'a')
 			if (mCurFrame > 0) mCurFrame -= 1;
@@ -459,8 +481,10 @@ void ReactionTestInterface::
 	}
 	if (key == 't')
 		this->perturb();
+	#ifdef REACTION_ENABLED
 	if (key == 'y')
 		this->mController->setFeedbackDelayed(!this->mController->getFeedbackDelayed());
+	#endif
 	if (key == 'r')
 		Reset();
 }
@@ -483,7 +507,9 @@ void ReactionTestInterface::
 		while (!perturbance_timestamp.empty() && perturbance_timestamp[0] + 60 < this->mCurFrame){
 			removeFirstPerturbance();
 		}
+		#ifdef REACTION_ENABLED
 		this->mController->UpdatePerturbance(perturbance);
+		#endif
 	}
 
 	SetFrame(this->mCurFrame);
