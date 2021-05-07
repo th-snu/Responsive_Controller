@@ -6,4 +6,5 @@ sim/libsim.a
 result/
 include/
 lib/
-*.so
+
+*/*.so
