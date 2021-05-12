@@ -57,7 +57,7 @@ protected:
 	Camera* 		mCamera;
 	//BVH* 			current_bvh;
 	DPhy::ReferenceManager*			mReferenceManager;
-	DPhy::Controller* 				mController;
+	DPhy::ReactiveController* 				mController;
 
 	std::string character_path;
 

@@ -1,8 +1,7 @@
 
 #include "ReactionTestInterface.h"
-#include "CollisionTest.h"
 #include <iostream>
-//#define REACTION_ENABLED
+#define REACTION_ENABLED
 
 ReactionTestInterface::
 	ReactionTestInterface(std::string bvh, std::string ppo) : GLUTWindow(),
@@ -29,19 +28,6 @@ ReactionTestInterface::
 	DPhy::Character *ref = new DPhy::Character(character_path);
 	mReferenceManager = new DPhy::ReferenceManager(ref);
 	mReferenceManager->LoadMotionFromBVH(std::string("/motion/") + bvh);
-
-	// std::vector<Eigen::VectorXd> pos;
-
-	// phase = 0;
-
-	// for (int i = 0; i < 1000; i++)
-	// {
-	// 	Eigen::VectorXd p = mReferenceManager->GetPosition(phase);
-	// 	pos.push_back(p);
-	// 	phase += mReferenceManager->GetTimeStep(phase);
-	// }
-
-	// mMotion_bvh = pos;
 
 	this->mCurFrame = 0;
 	this->mTotalFrame = 0;
@@ -70,7 +56,24 @@ ReactionTestInterface::
 		#endif
 	}
 
-	this->mBall = createBall();
+	using namespace dart::dynamics;
+
+    // Create a body for the ball
+	this->mBall =  Skeleton::create("ball");
+    BodyNodePtr body = this->mBall->createJointAndBodyNodePair<FreeJoint>(nullptr).second;
+
+	// Ellipsoid has an issue
+
+    // Box
+	float ball_radius = 0.1;
+    std::shared_ptr<BoxShape> box(new BoxShape(Eigen::Vector3d(ball_radius, ball_radius, ball_radius)));
+    body->createShapeNodeWith<VisualAspect, CollisionAspect, DynamicsAspect>(box);
+
+    // Set up inertia for the ball
+    dart::dynamics::Inertia inertia;
+    inertia.setMass(0.5);
+    inertia.setMoment(box->computeInertia(0.5));
+    body->setInertia(inertia);
 }
 
 void ReactionTestInterface::
