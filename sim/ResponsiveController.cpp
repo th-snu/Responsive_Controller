@@ -316,7 +316,7 @@ bool ResponsiveController::HumanoidCollide (){
 void ResponsiveController::
 	UpdatePerceptionInfo()
 {
-	const int max_reaction_frame = mSimulationHz / 4;
+	const int max_reaction_frame = mSimulationHz / 5;
 
 	// perceived state = actual state + delta (decays over time)
 	auto skel = mCharacter->GetSkeleton();
