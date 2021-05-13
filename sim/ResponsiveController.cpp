@@ -228,21 +228,14 @@ SimStep()
 	}
 
 	mCharacter->GetSkeleton()->setForces(torque);
+		mVirtualCharacter->GetSkeleton()->setForces(torque);
 
 	if (body_contact){
-		mVirtualCharacter->GetSkeleton()->setForces(torque);
-
-		mVirtualWorld->step();
-		mWorld->step(false);
-
 		contact_timestamp.push_back(this->mTimeElapsed);
-		char_skel->setState(state);
 	}
-	else {
-		mVirtualCharacter->GetSkeleton()->setForces(torque);
-		mVirtualWorld->step();
-		mWorld->step(false);
-	}
+
+	mVirtualWorld->step(false);
+	mWorld->step(false); 
 	
 	UpdatePerceptionInfo();
 
@@ -307,8 +300,10 @@ bool ResponsiveController::HumanoidCollide (){
 void ResponsiveController::
 	UpdatePerceptionInfo()
 {
-
-	
+	auto response_time = mSimulationHz / 5;
+	if(!contact_timestamp.empty() && contact_timestamp[0] - mTimeElapsed > response_time){
+		mVirtualCharacter->GetSkeleton()->setState(mCharacter->GetSkeleton()->getState());
+	}
 }
 
 void 
