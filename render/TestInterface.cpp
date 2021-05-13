@@ -1,10 +1,10 @@
 
-#include "ReactionTestInterface.h"
+#include "TestInterface.h"
 #include <iostream>
 #define REACTION_ENABLED
 
-ReactionTestInterface::
-	ReactionTestInterface(std::string bvh, std::string ppo) : GLUTWindow(),
+TestInterface::
+	TestInterface(std::string bvh, std::string ppo) : GLUTWindow(),
 													  mRD(),
 													  mMT(mRD()),
 													  mDistribution(-1.0, std::nextafter(1.0, 2.0)),
@@ -76,7 +76,7 @@ ReactionTestInterface::
     body->setInertia(inertia);
 }
 
-void ReactionTestInterface::
+void TestInterface::
 	display()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
@@ -97,7 +97,7 @@ void ReactionTestInterface::
 	glutSwapBuffers();
 }
 
-void ReactionTestInterface::
+void TestInterface::
 	SetFrame(int n)
 {
 	if (render_bvh){
@@ -113,7 +113,7 @@ void ReactionTestInterface::
 	#endif
 }
 
-void ReactionTestInterface::
+void TestInterface::
 	DrawSkeletons()
 {
 	glPushMatrix();
@@ -131,7 +131,7 @@ void ReactionTestInterface::
 	glPopMatrix();
 }
 
-void ReactionTestInterface::
+void TestInterface::
 	DrawGround()
 {
 	float size = 3.0f;
@@ -160,7 +160,7 @@ void ReactionTestInterface::
 	glEnd();
 }
 
-void ReactionTestInterface::
+void TestInterface::
 	initNetworkSetting(std::string ppo)
 {
 	Py_Initialize();
@@ -169,7 +169,7 @@ void ReactionTestInterface::
 		if (ppo != "")
 		{
 			#ifdef REACTION_ENABLED
-			this->mController = new DPhy::ReactiveController(mReferenceManager, this->character_path, true); //adaptive=true, bool parametric=true, bool record=true
+			this->mController = new DPhy::ResponsiveController(mReferenceManager, this->character_path, true); //adaptive=true, bool parametric=true, bool record=true
 			#else
 			this->mController = new DPhy::Controller(mReferenceManager, this->character_path, true); //adaptive=true, bool parametric=true, bool record=true
 			#endif
@@ -195,7 +195,7 @@ void ReactionTestInterface::
 	}
 }
 
-void ReactionTestInterface::
+void TestInterface::
 	step()
 {
 	if(this->mController->IsTerminalState()) {
@@ -231,7 +231,7 @@ void ReactionTestInterface::
 	}
 }
 
-void ReactionTestInterface::
+void TestInterface::
 	RunPPO()
 {
 	this->render_sim = true;
@@ -242,12 +242,12 @@ void ReactionTestInterface::
 	step();
 }
 
-void ReactionTestInterface::
+void TestInterface::
 	skeyboard(int key, int x, int y)
 {
 }
 
-void ReactionTestInterface::
+void TestInterface::
 	motion(int mx, int my)
 {
 	if ((drag_mouse_l == 0) && (drag_mouse_r == 0))
@@ -265,7 +265,7 @@ void ReactionTestInterface::
 	last_mouse_y = my;
 }
 
-void ReactionTestInterface::
+void TestInterface::
 	removeFirstPerturbance()
 {
 	auto pfirst = perturbance.front();
@@ -275,7 +275,7 @@ void ReactionTestInterface::
 	perturbance_timestamp.erase(perturbance_timestamp.begin());
 }
 
-void ReactionTestInterface::
+void TestInterface::
 	perturb()
 {
 	if (this->mController->IsTerminalState()) return;
@@ -299,7 +299,7 @@ void ReactionTestInterface::
 	}
 }
 
-bool ReactionTestInterface::
+bool TestInterface::
 	/// Add an object to the world and toss it at the wall
 	addObject(const dart::dynamics::SkeletonPtr &object)
 {
@@ -393,7 +393,7 @@ bool ReactionTestInterface::
 	return true;
 }
 
-void ReactionTestInterface::
+void TestInterface::
 	mouse(int button, int state, int mx, int my)
 {
 	if (button == 3 || button == 4)
@@ -424,7 +424,7 @@ void ReactionTestInterface::
 		drag_mouse_r = 0;
 	}
 }
-void ReactionTestInterface::
+void TestInterface::
 	Reset()
 {
 	while (!perturbance.empty())
@@ -449,7 +449,7 @@ void ReactionTestInterface::
 	step();
 }
 
-void ReactionTestInterface::
+void TestInterface::
 	keyboard(unsigned char key, int mx, int my)
 {
 	if (key == 27)
@@ -492,7 +492,7 @@ void ReactionTestInterface::
 		Reset();
 }
 
-void ReactionTestInterface::
+void TestInterface::
 	Timer(int value)
 {
 	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
@@ -526,7 +526,7 @@ void ReactionTestInterface::
 	glutPostRedisplay();
 }
 
-void ReactionTestInterface::
+void TestInterface::
 	reshape(int w, int h)
 {
 	glViewport(0, 0, w, h);

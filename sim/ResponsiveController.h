@@ -4,10 +4,10 @@
 namespace DPhy
 {
 
-class ReactiveController: public Controller
+class ResponsiveController: public Controller
 {
 public:
-	ReactiveController(ReferenceManager* ref, const std::string character_path, bool record=false, int id=0);
+	ResponsiveController(ReferenceManager* ref, const std::string character_path, bool record=false, int id=0);
 
 	void SimStep() override;
 

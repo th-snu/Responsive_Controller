@@ -11,7 +11,7 @@
 
 #include <experimental/filesystem>
 
-#include "ReactionTestInterface.h"
+#include "TestInterface.h"
 
 int main(int argc, char ** argv)
 {
@@ -47,7 +47,7 @@ int main(int argc, char ** argv)
     }
 
 	glutInit(&argc, argv);	
-	ReactionTestInterface* interface = new ReactionTestInterface(bvh, ppo);
+	TestInterface* interface = new TestInterface(bvh, ppo);
     interface->GLInitWindow("Motion Control");
 	glutMainLoop();
 	return 0;

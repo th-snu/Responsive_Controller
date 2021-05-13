@@ -16,19 +16,19 @@
 #include "DART_interface.h"
 #include "BVH.h"
 #include "Character.h"
-#include "ReactiveController.h"
+#include "ResponsiveController.h"
 #include "ReferenceManager.h"
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 
 namespace py = pybind11;
 
-class ReactionTestInterface : public GLUTWindow
+class TestInterface : public GLUTWindow
 {
 public:
 
-	ReactionTestInterface();
-	ReactionTestInterface(std::string bvh, std::string ppo);
+	TestInterface();
+	TestInterface(std::string bvh, std::string ppo);
 
 	void DrawGround();
 	void display();
@@ -57,7 +57,7 @@ protected:
 	Camera* 		mCamera;
 	//BVH* 			current_bvh;
 	DPhy::ReferenceManager*			mReferenceManager;
-	DPhy::ReactiveController* 				mController;
+	DPhy::ResponsiveController* 				mController;
 
 	std::string character_path;
 

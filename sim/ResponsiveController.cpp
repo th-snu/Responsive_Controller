@@ -1,12 +1,12 @@
 #include "dart/collision/bullet/bullet.hpp"
-#include "ReactiveController.h"
+#include "ResponsiveController.h"
 using namespace dart::dynamics;
 using namespace std;
 namespace DPhy
 {
 
-ReactiveController::
-ReactiveController(ReferenceManager* ref, const std::string character_path, bool record, int id): Controller(ref, character_path, record, id)
+ResponsiveController::
+ResponsiveController(ReferenceManager* ref, const std::string character_path, bool record, int id): Controller(ref, character_path, record, id)
 {
 	this->mVirtualWorld =  this->mWorld->clone();
 	this->mVirtualWorld->setTimeStep(1.0/(double)mSimulationHz);
@@ -25,7 +25,7 @@ ReactiveController(ReferenceManager* ref, const std::string character_path, bool
 }
 
 Eigen::VectorXd 
-ReactiveController::
+ResponsiveController::
 GetEndEffectorStatePosAndVel(const Eigen::VectorXd pos, const Eigen::VectorXd vel) {
 	Eigen::VectorXd ret;
 	auto& skel = mVirtualCharacter->GetSkeleton();
@@ -85,7 +85,7 @@ GetEndEffectorStatePosAndVel(const Eigen::VectorXd pos, const Eigen::VectorXd ve
 }
 
 Eigen::VectorXd
-ReactiveController::
+ResponsiveController::
 GetState()
 {
 	// State Component : Joint_angle, Joint_velocity, up_vector_angle, p_next,
@@ -151,7 +151,7 @@ GetState()
 }
 
 void
-ReactiveController::
+ResponsiveController::
 SetPDTarget(){
 	int num_body_nodes = mInterestedDof / 3;
 	int dof = this->mVirtualCharacter->GetSkeleton()->getNumDofs(); 
@@ -197,7 +197,7 @@ SetPDTarget(){
 }
 
 void
-ReactiveController::
+ResponsiveController::
 SimStep()
 {
 	// return Controller::SimStep();
@@ -276,7 +276,7 @@ SimStep()
 	this->mLastContacts = getLastContacts();
 }
 
-std::unordered_map<std::pair<std::string, std::string>, Eigen::Vector3d, Controller::pair_hash> ReactiveController::getLastContacts(){
+std::unordered_map<std::pair<std::string, std::string>, Eigen::Vector3d, Controller::pair_hash> ResponsiveController::getLastContacts(){
 	std::unordered_map<std::pair<std::string, std::string>, Eigen::Vector3d, Controller::pair_hash> contacts;
 	for (auto contact: this->mLastCollision.getContacts()){
 		// get contacts at the end of step and write collision info somewhere
@@ -295,7 +295,7 @@ std::unordered_map<std::pair<std::string, std::string>, Eigen::Vector3d, Control
 }
 
 // for bullet collision detector
-bool ReactiveController::HumanoidCollide (){
+bool ResponsiveController::HumanoidCollide (){
 	std::vector<dart::dynamics::ShapeNode*> humanoidNodes;
 	auto bds = this->mCharacter->GetSkeleton()->getBodyNodes();
 	for (auto bd : bds){
@@ -327,7 +327,7 @@ bool ReactiveController::HumanoidCollide (){
 	return false;
 }
 
-void ReactiveController::
+void ResponsiveController::
 	UpdatePerceptionInfo()
 {
 	const int max_reaction_frame = mSimulationHz / 4;
@@ -385,7 +385,7 @@ void ReactiveController::
 }
 
 void 
-ReactiveController::
+ResponsiveController::
 ClearRecord() 
 {
 	Controller::ClearRecord();
@@ -410,7 +410,7 @@ ClearRecord()
 }
 
 void
-ReactiveController::
+ResponsiveController::
 SaveStepInfo() 
 {
 	Controller::SaveStepInfo();
@@ -419,7 +419,7 @@ SaveStepInfo()
 }
 
 void
-ReactiveController::
+ResponsiveController::
 Reset(bool RSI)
 {
 	Controller::Reset(RSI);
