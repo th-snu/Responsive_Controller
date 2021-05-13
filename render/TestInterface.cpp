@@ -376,7 +376,7 @@ bool TestInterface::
 	Eigen::Vector3d direction = charskel->getCOM() - object->getCOM() + Eigen::Vector3d(mDistribution(mMT), mDistribution(mMT), mDistribution(mMT)) / 5.0;
 	direction.normalize();
 
-	speed = (mDistribution(mMT) + 4.0) * distance * 3 / 5.0;
+	speed = (mDistribution(mMT) + 1.0) * distance * 5 / 2.0;
 
 	angular_speed = mDistribution(mMT) * maximum_start_w;
 
