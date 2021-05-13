@@ -204,23 +204,7 @@ SimStep()
 
 	int num_body_nodes = mInterestedDof / 3;
 
-	std::cout << "================" << std::endl;
-
 	Eigen::VectorXd torque = mVirtualCharacter->GetSPDForces(mPDTargetPositions, mPDTargetVelocities);
-	// std::cout << "dq: " << (mVirtualCharacter->GetSkeleton()->getPositions() - mPDTargetPositions).transpose() << std::endl;
-	std::cout << "v: " << (mCharacter->GetSkeleton()->getVelocities()).norm() << std::endl;
-	std::cout << "vv: " << (mVirtualCharacter->GetSkeleton()->getVelocities()).norm() << std::endl;
-	std::cout << "tv: " << (mPDTargetVelocities).norm() << std::endl;
-	std::cout << "tq: " << (mPDTargetPositions).norm() << std::endl;
-	// std::cout << "g: " << (mVirtualCharacter->GetSkeleton()->getGravityForces() - GetSkeleton()->getGravityForces()).transpose() << std::endl;
-	std::cout << "vf: " << (mVirtualCharacter->GetSkeleton()->getConstraintForces() ).norm() << std::endl;
-	std::cout << "f: " << (GetSkeleton()->getConstraintForces() ).norm() << std::endl;
-	std::cout << "t: " << (torque ).norm() << std::endl;
-	std::cout << "ef: " << (mCharacter->GetSkeleton()->getExternalForces()).norm() << std::endl;
-	std::cout << "a: " << (mCharacter->GetSkeleton()->getAccelerations()).norm() << std::endl;
-	// std::cout << "df: " << (GetSkeleton()->getConstraintForces() ).transpose() << std::endl;
-	// auto cTorque = mCharacter->GetSPDForces(mPDTargetPositions, mPDTargetVelocities);
-	// std::cout << "dTorque: " << (cTorque - torque).transpose() <<std::endl;
 
 	for(int j = 0; j < num_body_nodes; j++) {
 		int idx = mVirtualCharacter->GetSkeleton()->getBodyNode(j)->getParentJoint()->getIndexInSkeleton(0);
@@ -245,7 +229,6 @@ SimStep()
 
 	mCharacter->GetSkeleton()->setForces(torque);
 
-	UpdatePerceptionInfo();
 	if (body_contact){
 		auto char_skel = mVirtualCharacter->GetSkeleton();
 		auto state = char_skel->getState();
@@ -265,10 +248,13 @@ SimStep()
 		char_skel->setState(state);
 	}
 	else {
+		mVirtualCharacter->GetSkeleton()->setForces(torque);
+		mVirtualWorld->step();
 		mWorld->step(false);
 	}
-	mVirtualCharacter->GetSkeleton()->setForces(torque);
-	mVirtualWorld->step();
+	
+	UpdatePerceptionInfo();
+
 	mTimeElapsed += 1;
 
 	auto collisionSolver = mWorld->getConstraintSolver();
@@ -338,32 +324,32 @@ void ResponsiveController::
 	Eigen::VectorXd positions = skel->getPositions();
 	Eigen::VectorXd velocities = skel->getVelocities();
 
-	while(!contact_timestamp.empty() && contact_timestamp.front() < this->mTimeElapsed - max_reaction_frame){
-		contact_timestamp.erase(contact_timestamp.begin());
-		d_expected_positions.erase(d_expected_positions.begin());
-		d_expected_velocities.erase(d_expected_velocities.begin());
-	}
+	// while(!contact_timestamp.empty() && contact_timestamp.front() < this->mTimeElapsed - max_reaction_frame){
+	// 	contact_timestamp.erase(contact_timestamp.begin());
+	// 	d_expected_positions.erase(d_expected_positions.begin());
+	// 	d_expected_velocities.erase(d_expected_velocities.begin());
+	// }
 	
-	Eigen::VectorXd position_bias(positions.size());
-	Eigen::VectorXd velocity_bias(velocities.size());
-	position_bias.setZero();
-	velocity_bias.setZero();
+	// Eigen::VectorXd position_bias(positions.size());
+	// Eigen::VectorXd velocity_bias(velocities.size());
+	// position_bias.setZero();
+	// velocity_bias.setZero();
 
-	for (int i = 0; i < contact_timestamp.size(); i++){
-		int contactTimeElapsed = this->mTimeElapsed - contact_timestamp[i];
-		double weight = 1.0 - (exp(contactTimeElapsed) - 1) / (exp(max_reaction_frame) - 1);
-		cout << "dev: " << d_expected_velocities[i].norm() <<  ", weight: " << weight << endl;
-		auto d_v = d_expected_velocities[i] * weight;
-		velocity_bias += d_v;
-		position_bias += d_expected_positions[i] * weight + (1.0 / mSimulationHz) * d_v * contactTimeElapsed;
-	}
+	// for (int i = 0; i < contact_timestamp.size(); i++){
+	// 	int contactTimeElapsed = this->mTimeElapsed - contact_timestamp[i];
+	// 	double weight = 1.0 - (exp(contactTimeElapsed) - 1) / (exp(max_reaction_frame) - 1);
+	// 	cout << "dev: " << d_expected_velocities[i].norm() <<  ", weight: " << weight << endl;
+	// 	auto d_v = d_expected_velocities[i] * weight;
+	// 	velocity_bias += d_v;
+	// 	position_bias += d_expected_positions[i] * weight + (1.0 / mSimulationHz) * d_v * contactTimeElapsed;
+	// }
 
-	positions += position_bias;
-	velocities += velocity_bias;
-	this->d_position_bias = position_bias - this->last_position_bias;
-	auto d_velocity_bias = velocity_bias - this->last_velocity_bias;
-	this->last_position_bias = position_bias;
-	this->last_velocity_bias = velocity_bias;
+	// positions += position_bias;
+	// velocities += velocity_bias;
+	// this->d_position_bias = position_bias - this->last_position_bias;
+	// auto d_velocity_bias = velocity_bias - this->last_velocity_bias;
+	// this->last_position_bias = position_bias;
+	// this->last_velocity_bias = velocity_bias;
 
 	// vSkel->setPositions(skel->getPositions() + d_position_bias);
 	// vSkel->setVelocities(vSkel->getVelocities() + d_velocity_bias);
@@ -423,6 +409,7 @@ ResponsiveController::
 Reset(bool RSI)
 {
 	Controller::Reset(RSI);
+	// clearrecord has functions needed in reset
 }
 
 }

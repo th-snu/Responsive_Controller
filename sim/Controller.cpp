@@ -5,7 +5,7 @@ namespace DPhy
 {
 
 Controller::Controller(ReferenceManager* ref, const std::string character_path, bool record, int id)
-	:mControlHz(30),mSimulationHz(240),mCurrentFrame(0),
+	:mControlHz(30),mSimulationHz(120),mCurrentFrame(0),
 	w_p(0.35),w_v(0.1),w_ee(0.3),w_com(0.25),
 	terminationReason(-1),mIsNanAtTerminal(false), mIsTerminal(false)
 {
@@ -24,11 +24,6 @@ Controller::Controller(ReferenceManager* ref, const std::string character_path, 
 	this->mSimPerCon = mSimulationHz / mControlHz;
 	
 	this->mCurrentFrameOnPhase = 0;
-
-	// Eigen::VectorXd kp(this->mCharacter->GetSkeleton()->getNumDofs());
-	// Eigen::VectorXd kv(this->mCharacter->GetSkeleton()->getNumDofs());
-	// kp.setZero();
-	// kv.setZero();
 	
 	this->mCharacter->SetPDParameters(600, 49);
 
