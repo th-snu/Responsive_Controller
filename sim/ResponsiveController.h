@@ -19,6 +19,7 @@ public:
 
 	Eigen::VectorXd GetVirtualPositions(int idx) { return this->mRecordVirtualPosition[idx]; }
 	Eigen::VectorXd GetVirtualVelocities(int idx) { return this->mRecordVirtualVelocity[idx]; }
+	std::vector<Eigen::VectorXd> GetPerturbancePositions(int idx) { return this->mRecordPerturbancePosition[idx]; }
 	Eigen::VectorXd GetEndEffectorStatePosAndVel(const Eigen::VectorXd pos, const Eigen::VectorXd vel) override;
 
 	void SetPDTarget() override;
@@ -33,6 +34,7 @@ public:
 	std::unordered_map<std::pair<std::string, std::string>, Eigen::Vector3d, pair_hash> getLastContacts();
 
 private:
+	bool recovery_mode = false;
 	dart::collision::CollisionResult mLastCollision;
 	std::unordered_map<std::pair<std::string, std::string>, Eigen::Vector3d, Controller::pair_hash> mLastContacts;
 	// Difference between the actual state and state without contact
@@ -56,6 +58,7 @@ private:
 
 	std::vector<Eigen::VectorXd> mRecordVirtualPosition;
 	std::vector<Eigen::VectorXd> mRecordVirtualVelocity;
+	std::vector<std::vector<Eigen::VectorXd>> mRecordPerturbancePosition;
 
 	bool mIsFeedbackDelayed;
 };

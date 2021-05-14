@@ -75,6 +75,8 @@ protected:
 	std::vector<Eigen::VectorXd> mMotion_bvh;
 	std::vector<Eigen::VectorXd> mMotion_sim;
 	std::vector<Eigen::VectorXd> mMotion_virtual;
+	std::vector<std::vector<Eigen::VectorXd>> mPerturbancePos;
+	std::vector<dart::dynamics::SkeletonPtr> tmpPerturbance;
 
 	int mx;
 	int my;

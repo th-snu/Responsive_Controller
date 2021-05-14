@@ -8,6 +8,7 @@ namespace DPhy
 ResponsiveController::
 ResponsiveController(ReferenceManager* ref, const std::string character_path, bool record, int id): Controller(ref, character_path, record, id)
 {
+	this->recovery_mode = false;
 	this->mVirtualWorld = std::make_shared<dart::simulation::World>();
 	this->mVirtualWorld->setTimeStep(1.0/(double)mSimulationHz);
 	this->mVirtualWorld->setGravity(Eigen::Vector3d(0,-9.8,0));	
@@ -202,15 +203,19 @@ void
 ResponsiveController::
 SimStep()
 {
-	cout << "Simstep #" << mTimeElapsed << endl;
-	// return Controller::SimStep();
-
 	int num_body_nodes = mInterestedDof / 3;
 
 	auto vSkel = mVirtualCharacter->GetSkeleton();
 
+	if (this->recovery_mode){
+		// terminate simulation for now
+		auto pos = this->GetSkeleton()->getPositions();
+		pos[0] = NAN;
+		this->GetSkeleton()->setPositions(pos);
+		return;	
+	}
+
 	Eigen::VectorXd torque = mVirtualCharacter->GetSPDForces(mPDTargetPositions, mPDTargetVelocities);
-	auto rtorque = mCharacter->GetSPDForces(mPDTargetPositions, mPDTargetVelocities);
 
 	for(int j = 0; j < num_body_nodes; j++) {
 		int idx = vSkel->getBodyNode(j)->getParentJoint()->getIndexInSkeleton(0);
@@ -235,15 +240,16 @@ SimStep()
 
 	mCharacter->GetSkeleton()->setForces(torque);
 	mVirtualCharacter->GetSkeleton()->setForces(torque);
+	UpdatePerceptionInfo();
 
 	if (body_contact){
+		// a contact can occur for a long time, so it could be considered as well in the future
 		contact_timestamp.push_back(this->mTimeElapsed);
 	}
 
 	mVirtualWorld->step(false);
 	mWorld->step(false); 
 	
-	UpdatePerceptionInfo();
 
 	mTimeElapsed += 1;
 
@@ -309,11 +315,8 @@ bool ResponsiveController::HumanoidCollide (){
 void ResponsiveController::
 	UpdatePerceptionInfo()
 {
-	return;
+	const int max_reaction_frame = mSimulationHz / 5.0;
 
-	const int max_reaction_frame = mSimulationHz / 5;
-
-	// perceived state = actual state + delta (decays over time)
 	auto skel = mCharacter->GetSkeleton();
 	auto vSkel = mVirtualCharacter->GetSkeleton();
 	Eigen::VectorXd positions = skel->getPositions();
@@ -321,50 +324,12 @@ void ResponsiveController::
 
 	while(!contact_timestamp.empty() && contact_timestamp.front() < this->mTimeElapsed - max_reaction_frame){
 		contact_timestamp.erase(contact_timestamp.begin());
-		d_expected_positions.erase(d_expected_positions.begin());
-		d_expected_velocities.erase(d_expected_velocities.begin());
+		vSkel->setPositions(positions);
+		vSkel->setVelocities(velocities);
+		vSkel->clearConstraintImpulses();
+
+		this->recovery_mode = true;
 	}
-	
-	Eigen::VectorXd position_bias(positions.size());
-	Eigen::VectorXd velocity_bias(velocities.size());
-	position_bias.setZero();
-	velocity_bias.setZero();
-
-	for (int i = 0; i < contact_timestamp.size(); i++){
-		int contactTimeElapsed = this->mTimeElapsed - contact_timestamp[i];
-		double weight = 1.0 - (exp(contactTimeElapsed) - 1) / (exp(max_reaction_frame) - 1);
-		cout << "dev: " << d_expected_velocities[i].norm() <<  ", weight: " << weight << endl;
-		auto d_v = d_expected_velocities[i] * weight;
-		velocity_bias += d_v;
-		position_bias += d_expected_positions[i] * weight + (1.0 / mSimulationHz) * d_v * contactTimeElapsed;
-	}
-
-	positions += position_bias;
-	velocities += velocity_bias;
-
-	// this->d_position_bias = position_bias - this->last_position_bias;
-	// auto d_velocity_bias = velocity_bias - this->last_velocity_bias;
-	// this->last_position_bias = position_bias;
-	// this->last_velocity_bias = velocity_bias;
-
-	// vSkel->setPositions(vSkel->getPositions() + d_position_bias);
-	// vSkel->setVelocities(vSkel->getVelocities() + d_velocity_bias);
-
-	vSkel->setPositions(positions);
-	vSkel->setVelocities(velocities);
-	vSkel->clearConstraintImpulses();
-
-	// auto collisionSolver = mVirtualWorld->getConstraintSolver();
-	// for(auto contact: collisionSolver->getLastCollisionResult().getContacts()){
-	// 	auto co1 = contact.collisionObject1;
-	// 	auto co2 = contact.collisionObject2;
-
-	// 	auto sf1 = co1->getShapeFrame()->getName();
-	// 	auto sf2 = co2->getShapeFrame()->getName();
-
-	// 	std::cout << sf1 << " / " << sf2  << " : " << contact.force << std::endl;
-	// }
-	
 }
 
 void 
@@ -374,6 +339,7 @@ ClearRecord()
 	Controller::ClearRecord();
 	this->mRecordVirtualVelocity.clear();
 	this->mRecordVirtualPosition.clear();
+	this->mRecordPerturbancePosition.clear();
 
 	// virtual character should be updated before recording in controller reset
 	auto vSkel = this->mVirtualCharacter->GetSkeleton();
@@ -388,12 +354,18 @@ SaveStepInfo()
 	Controller::SaveStepInfo();
 	mRecordVirtualPosition.push_back(mVirtualCharacter->GetSkeleton()->getPositions());
 	mRecordVirtualVelocity.push_back(mVirtualCharacter->GetSkeleton()->getVelocities());
+	vector<Eigen::VectorXd> pPositions;
+	for(auto p : perturbance){
+		pPositions.push_back(p->getPositions());
+	}
+	mRecordPerturbancePosition.push_back(pPositions);
 }
 
 void
 ResponsiveController::
 Reset(bool RSI)
 {
+	this->recovery_mode = false;
 	this->mVirtualWorld->reset();
 	auto vSkel = this->mVirtualCharacter->GetSkeleton();
 	vSkel->clearConstraintImpulses();

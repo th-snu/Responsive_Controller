@@ -1,7 +1,6 @@
 
 #include "TestInterface.h"
 #include <iostream>
-#define REACTION_ENABLED
 
 TestInterface::
 	TestInterface(std::string bvh, std::string ppo) : GLUTWindow(),
@@ -48,20 +47,20 @@ TestInterface::
 		initNetworkSetting(ppo);
 		this->render_sim = true;
 
-		#ifdef REACTION_ENABLED
 		this->mSkel_virtual = DPhy::SkeletonBuilder::BuildFromFile(character_path).first;
 		DPhy::SetSkeletonColor(mSkel_virtual, Eigen::Vector4d(13. / 255., 235. / 255., 164. / 255., 0.5));
 
 		this->render_virtual = true;
-		#endif
 	}
+
+	this->tmpPerturbance.clear();
 
 	using namespace dart::dynamics;
 
     // Create a body for the ball
 	this->mBall =  Skeleton::create("ball");
     BodyNodePtr body = this->mBall->createJointAndBodyNodePair<FreeJoint>(nullptr).second;
-
+ 
 	// Ellipsoid has an issue
 
     // Box
@@ -105,12 +104,16 @@ void TestInterface::
 	}
 	if (render_sim){
 		if(!mMotion_sim[n].hasNaN()) mSkel_sim->setPositions(mMotion_sim[n]);
+		tmpPerturbance.clear();
+		for(int i = 0; i < mPerturbancePos[n].size(); i++){
+			auto p = mBall->cloneSkeleton();
+			p->setPositions(mPerturbancePos[n][i]);
+			tmpPerturbance.push_back(p);
+		}
 	}
-	#ifdef REACTION_ENABLED
 	if (render_virtual){
 		if(!mMotion_virtual[n].hasNaN()) mSkel_virtual->setPositions(mMotion_virtual[n]);
 	}
-	#endif
 }
 
 void TestInterface::
@@ -122,12 +125,11 @@ void TestInterface::
 		GUI::DrawSkeleton(this->mSkel, 0);
 	if (render_sim)
 		GUI::DrawSkeleton(this->mSkel_sim, 0);
-	#ifdef REACTION_ENABLED
 	if (render_virtual)
 		GUI::DrawSkeleton(this->mSkel_virtual, 0);
-	#endif
-	for (int i = 0; i < perturbance.size(); i++)
-		GUI::DrawSkeleton(perturbance[i], 0);
+	for (auto p : this->tmpPerturbance){
+		GUI::DrawSkeleton(p, 0);
+	}
 	glPopMatrix();
 }
 
@@ -168,11 +170,8 @@ void TestInterface::
 	{
 		if (ppo != "")
 		{
-			#ifdef REACTION_ENABLED
 			this->mController = new DPhy::ResponsiveController(mReferenceManager, this->character_path, true); //adaptive=true, bool parametric=true, bool record=true
-			#else
-			this->mController = new DPhy::Controller(mReferenceManager, this->character_path, true); //adaptive=true, bool parametric=true, bool record=true
-			#endif
+			//this->mController = new DPhy::Controller(mReferenceManager, this->character_path, true); //adaptive=true, bool parametric=true, bool record=true
 			//mController->SetGoalParameters(mReferenceManager->GetParamCur());
 
 			py::object sys_module = py::module::import("sys");
@@ -223,11 +222,10 @@ void TestInterface::
 		mMotion_sim.push_back(position);
 		mMotion_bvh.push_back(position_bvh);
 
-		#ifdef REACTION_ENABLED
 		Eigen::VectorXd position_virtual = this->mController->GetVirtualPositions(i);
 		position_virtual[3] += 1.5;
 		mMotion_virtual.push_back(position_virtual);
-		#endif
+		mPerturbancePos.push_back(this->mController->GetPerturbancePositions(i));
 	}
 }
 
@@ -293,9 +291,7 @@ void TestInterface::
 		// double elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count()/1000000.;
 		if (perturbance.size() > 10) removeFirstPerturbance();
 		
-		#ifdef REACTION_ENABLED
 		this->mController->UpdatePerturbance(perturbance);
-		#endif
 	}
 }
 
@@ -438,13 +434,13 @@ void TestInterface::
 	
 	this->mMotion_bvh = std::vector<Eigen::VectorXd>();
 	this->mMotion_sim = std::vector<Eigen::VectorXd>();
-	#ifdef REACTION_ENABLED
 	this->mController->UpdatePerturbance(perturbance);
 	this->mMotion_virtual = std::vector<Eigen::VectorXd>();
-	#endif
 	mTotalFrame = 0;
 	mCurFrame = 0;
 	mController->Reset(false);
+	this->tmpPerturbance = std::vector<dart::dynamics::SkeletonPtr>();
+	this->mPerturbancePos = std::vector<std::vector<Eigen::VectorXd>>();
 	this->mTiming = std::vector<double>();
 	step();
 }
@@ -466,10 +462,8 @@ void TestInterface::
 		this->render_bvh = (this->render_bvh == false);
 	if (key == '2')
 		this->render_sim = (this->render_sim == false);
-	#ifdef REACTION_ENABLED
 	if (key == '3')
 		this->render_virtual = (this->render_virtual == false);
-	#endif
 	if (!on_animation){
 		if (key == 'a')
 			if (mCurFrame > 0) mCurFrame -= 1;
@@ -484,10 +478,8 @@ void TestInterface::
 	}
 	if (key == 't')
 		this->perturb();
-	#ifdef REACTION_ENABLED
 	if (key == 'y')
 		this->mController->setFeedbackDelayed(!this->mController->getFeedbackDelayed());
-	#endif
 	if (key == 'r')
 		Reset();
 }
@@ -510,9 +502,7 @@ void TestInterface::
 		while (!perturbance_timestamp.empty() && perturbance_timestamp[0] + 60 < this->mCurFrame){
 			removeFirstPerturbance();
 		}
-		#ifdef REACTION_ENABLED
 		this->mController->UpdatePerturbance(perturbance);
-		#endif
 	}
 
 	SetFrame(this->mCurFrame);
