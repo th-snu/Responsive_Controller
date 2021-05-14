@@ -93,6 +93,10 @@ void TestInterface::
 	GUI::DrawStringOnScreen(0.8, 0.85, this->on_animation ? "Playing" : "Stopped", true, Eigen::Vector3d::Zero());
 	GUI::DrawStringOnScreen(0.8, 0.8, std::to_string(this->framerate) + "fps", true, Eigen::Vector3d::Zero());
 	GUI::DrawStringOnScreen(0.8, 0.75, this->mController->getFeedbackDelayed() ? "Enabled" : "Disabled", true, Eigen::Vector3d::Zero());
+	GUI::DrawStringOnScreen(0.1, 0.9, "T: Throw object at chacracter", true, Eigen::Vector3d::Zero());
+	GUI::DrawStringOnScreen(0.1, 0.85, "Y: Toggle delayed feedback", true, Eigen::Vector3d::Zero());
+	GUI::DrawStringOnScreen(0.1, 0.8, "Space: Play/Stop toggle", true, Eigen::Vector3d::Zero());
+	GUI::DrawStringOnScreen(0.1, 0.75, "A/D: Go to prev/next frame", true, Eigen::Vector3d::Zero());
 
 	glutSwapBuffers();
 }

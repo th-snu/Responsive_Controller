@@ -335,9 +335,11 @@ void ResponsiveController::
 		update = true;
 		this->recovery_mode = true;
 		
-		// todo: Properly retarget motion
-		mTargetVelocities.setZero();
-		mTargetPositions.setZero();
+		if(mIsFeedbackDelayed){
+			// todo: Properly retarget motion
+			mTargetVelocities.setZero();
+			mTargetPositions.setZero();
+		}
 	}
 
 	if (update) {
