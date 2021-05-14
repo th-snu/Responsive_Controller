@@ -64,7 +64,7 @@ TestInterface::
 	// Ellipsoid has an issue
 
     // Box
-	float ball_radius = 0.1;
+	float ball_radius = 0.2;
     std::shared_ptr<BoxShape> box(new BoxShape(Eigen::Vector3d(ball_radius, ball_radius, ball_radius)));
     body->createShapeNodeWith<VisualAspect, CollisionAspect, DynamicsAspect>(box);
 
@@ -92,6 +92,7 @@ void TestInterface::
 	GUI::DrawStringOnScreen(0.8, 0.9, std::to_string(mCurFrame), true, Eigen::Vector3d::Zero());
 	GUI::DrawStringOnScreen(0.8, 0.85, this->on_animation ? "Playing" : "Stopped", true, Eigen::Vector3d::Zero());
 	GUI::DrawStringOnScreen(0.8, 0.8, std::to_string(this->framerate) + "fps", true, Eigen::Vector3d::Zero());
+	GUI::DrawStringOnScreen(0.8, 0.75, this->mController->getFeedbackDelayed() ? "Enabled" : "Disabled", true, Eigen::Vector3d::Zero());
 
 	glutSwapBuffers();
 }
@@ -280,7 +281,6 @@ void TestInterface::
 
 	auto ball = mBall->cloneSkeleton();
 	bool success = addObject(ball);
-	std::cout << ball->getMass() << std::endl;
 
 	if (success)
 	{
@@ -299,11 +299,11 @@ bool TestInterface::
 	/// Add an object to the world and toss it at the wall
 	addObject(const dart::dynamics::SkeletonPtr &object)
 {
-	const double default_start_height = 1.0;						// m
+	const double default_start_height = 1.5;						// m
 	const double minimum_launch_angle = dart::math::toRadian(30.0); // rad
 	const double maximum_launch_angle = dart::math::toRadian(70.0); // rad
 	const double default_launch_angle = dart::math::toRadian(45.0); // rad
-	const double default_spawn_range = 0.9;
+	const double default_spawn_range = 2.0;
 
 	const double minimum_start_v = 2.5; // m/s
 	const double maximum_start_v = 4.0; // m/s
@@ -316,9 +316,11 @@ bool TestInterface::
 	Eigen::Vector6d positions(Eigen::Vector6d::Zero());
 
 	// If randomization is on, we will randomize the starting y-location
-	positions[3] = default_spawn_range * mDistribution(mMT);
-	positions[4] = default_start_height;
-	positions[5] = default_spawn_range * mDistribution(mMT);
+	while (abs(positions[3]) < 1.0)
+		positions[3] = default_spawn_range * mDistribution(mMT);
+	positions[4] = default_start_height + mDistribution(mMT);
+	while (abs(positions[5]) < 1.0)
+		positions[5] = default_spawn_range * mDistribution(mMT);
 
 	auto charskel = mController->GetSkeleton();
 
@@ -369,16 +371,20 @@ bool TestInterface::
 	double angular_speed = default_start_w;
 
 	double distance = (charskel->getCOM() - object->getCOM()).norm();
-	Eigen::Vector3d direction = charskel->getCOM() - object->getCOM() + Eigen::Vector3d(mDistribution(mMT), mDistribution(mMT), mDistribution(mMT)) / 5.0;
+	Eigen::Vector3d direction = charskel->getCOM() - object->getCOM() + Eigen::Vector3d(mDistribution(mMT), mDistribution(mMT), mDistribution(mMT)) / 2.0;
+	direction[1] += 0.5;
 	direction.normalize();
 
-	speed = (mDistribution(mMT) + 1.0) * distance * 5 / 2.0;
+	Eigen::Vector3d speed_offset = charskel->getCOMSpatialVelocity().block(3, 0, 3, 1);
+	speed = (mDistribution(mMT) + 3.0) * distance * 1.0;
 
 	angular_speed = mDistribution(mMT) * maximum_start_w;
 
-	Eigen::Vector3d v = speed * direction;
+	Eigen::Vector3d v = speed * direction + speed_offset;
 	Eigen::Vector3d w = angular_speed * Eigen::Vector3d::UnitY();
 	center.setClassicDerivatives(v, w);
+
+	std::cout << "Launched box at velocity: " << v.norm() << " m/s" << std::endl;
 
 	dart::dynamics::SimpleFrame ref(&center, "root_reference");
 	ref.setRelativeTransform(object->getBodyNode(0)->getTransform(&center));

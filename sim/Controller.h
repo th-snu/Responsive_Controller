@@ -19,7 +19,7 @@ namespace DPhy
 class Controller
 {
 public:
-	Controller(ReferenceManager* ref, const std::string character_path, bool record=false, int id=0);
+	Controller(ReferenceManager* ref, const std::string character_path, bool record=false, int id=0, bool train=true);
 
 	struct pair_hash {
 		template <class T1, class T2>
@@ -160,6 +160,7 @@ protected:
 	Eigen::Vector3d mRootZeroDiff; //root 0th frame
 	Eigen::Vector3d mStartFoot; //middle of two feet at 0th frame
 
+	bool train;
 };
 }
 

@@ -23,6 +23,9 @@ ResponsiveController(ReferenceManager* ref, const std::string character_path, bo
 	
 	this->mVirtualCharacter->SetPDParameters(600, 49);
 
+	// this->GetSkeleton()->disableSelfCollisionCheck();
+	// this->mVirtualCharacter->GetSkeleton()->disableSelfCollisionCheck();
+
 	this->last_position_bias = Eigen::VectorXd(GetSkeleton()->getPositions().size()).setZero();
 	this->last_velocity_bias = Eigen::VectorXd(GetSkeleton()->getVelocities().size()).setZero();
 }
@@ -179,7 +182,6 @@ SetPDTarget(){
 	Eigen::VectorXd p_now = p_v_target->GetPosition();
 	this->mTargetPositions = p_now ; //p_v_target->GetPosition();
 
- // something more to set target velocity is needed, applying perceptual position changes in mPrevTargetPositions might work 
 	this->mTargetVelocities = mVirtualCharacter->GetSkeleton()->getPositionDifferences(mTargetPositions, mPrevTargetPositions) / 0.033;
 	delete p_v_target;
 
@@ -207,24 +209,28 @@ SimStep()
 
 	auto vSkel = mVirtualCharacter->GetSkeleton();
 
-	if (this->recovery_mode){
-		// terminate simulation for now
-		auto pos = this->GetSkeleton()->getPositions();
-		pos[0] = NAN;
-		this->GetSkeleton()->setPositions(pos);
-		return;	
+	Eigen::VectorXd torque(vSkel->getNumDofs());
+
+	// implement recovery mode
+	if (this->mTargetVelocities.isZero() || this->mPrevTargetPositions.isZero()){
+		torque.setZero();
+		// auto pos = this->GetSkeleton()->getPositions();
+		// pos[0] = NAN;
+		// this->GetSkeleton()->setPositions(pos);
+		// return;	
 	}
+	else {
+		torque = mVirtualCharacter->GetSPDForces(mPDTargetPositions, mPDTargetVelocities);
 
-	Eigen::VectorXd torque = mVirtualCharacter->GetSPDForces(mPDTargetPositions, mPDTargetVelocities);
-
-	for(int j = 0; j < num_body_nodes; j++) {
-		int idx = vSkel->getBodyNode(j)->getParentJoint()->getIndexInSkeleton(0);
-		int dof = vSkel->getBodyNode(j)->getParentJoint()->getNumDofs();
-		std::string name = mCharacter->GetSkeleton()->getBodyNode(j)->getName();
-		double torquelim = mCharacter->GetTorqueLimit(name) * 1.5;
-		double torque_norm = torque.block(idx, 0, dof, 1).norm();
-		
-		torque.block(idx, 0, dof, 1) = std::max(-torquelim, std::min(torquelim, torque_norm)) * torque.block(idx, 0, dof, 1).normalized();
+		for(int j = 0; j < num_body_nodes; j++) {
+			int idx = vSkel->getBodyNode(j)->getParentJoint()->getIndexInSkeleton(0);
+			int dof = vSkel->getBodyNode(j)->getParentJoint()->getNumDofs();
+			std::string name = mVirtualCharacter->GetSkeleton()->getBodyNode(j)->getName();
+			double torquelim = mVirtualCharacter->GetTorqueLimit(name) * 1.5;
+			double torque_norm = torque.block(idx, 0, dof, 1).norm();
+			
+			torque.block(idx, 0, dof, 1) = std::max(-torquelim, std::min(torquelim, torque_norm)) * torque.block(idx, 0, dof, 1).normalized();
+		}
 	}
 
 	// check contact of humanoid
@@ -315,20 +321,31 @@ bool ResponsiveController::HumanoidCollide (){
 void ResponsiveController::
 	UpdatePerceptionInfo()
 {
-	const int max_reaction_frame = mSimulationHz / 5.0;
+	const int max_reaction_frame = mSimulationHz / 8.0;
 
 	auto skel = mCharacter->GetSkeleton();
 	auto vSkel = mVirtualCharacter->GetSkeleton();
-	Eigen::VectorXd positions = skel->getPositions();
-	Eigen::VectorXd velocities = skel->getVelocities();
+
+	bool update = false;
+
+	if(!mIsFeedbackDelayed) update = true;
 
 	while(!contact_timestamp.empty() && contact_timestamp.front() < this->mTimeElapsed - max_reaction_frame){
 		contact_timestamp.erase(contact_timestamp.begin());
+		update = true;
+		this->recovery_mode = true;
+		
+		// todo: Properly retarget motion
+		mTargetVelocities.setZero();
+		mTargetPositions.setZero();
+	}
+
+	if (update) {
+		Eigen::VectorXd positions = skel->getPositions();
+		Eigen::VectorXd velocities = skel->getVelocities();
 		vSkel->setPositions(positions);
 		vSkel->setVelocities(velocities);
 		vSkel->clearConstraintImpulses();
-
-		this->recovery_mode = true;
 	}
 }
 

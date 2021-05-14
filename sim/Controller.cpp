@@ -4,8 +4,8 @@ using namespace dart::dynamics;
 namespace DPhy
 {
 
-Controller::Controller(ReferenceManager* ref, const std::string character_path, bool record, int id)
-	:mControlHz(30),mSimulationHz(120),mCurrentFrame(0),
+Controller::Controller(ReferenceManager* ref, const std::string character_path, bool record, int id, bool train)
+	:mControlHz(30),mSimulationHz(1200),mCurrentFrame(0),
 	w_p(0.35),w_v(0.1),w_ee(0.3),w_com(0.25),
 	terminationReason(-1),mIsNanAtTerminal(false), mIsTerminal(false)
 {
@@ -268,23 +268,25 @@ UpdateTerminalInfo()
 		terminationReason = 4;
 	}
 
-	if(!mRecord && root_pos_diff.norm() > TERMINAL_ROOT_DIFF_THRESHOLD){
-		mIsTerminal = true;
-		terminationReason = 2;
-	}
+	if (this->train){
+		if(!mRecord && root_pos_diff.norm() > TERMINAL_ROOT_DIFF_THRESHOLD){
+			mIsTerminal = true;
+			terminationReason = 2;
+		}
 
-	double cur_height_limit = TERMINAL_ROOT_HEIGHT_UPPER_LIMIT;
-	if(!mRecord && root_y<TERMINAL_ROOT_HEIGHT_LOWER_LIMIT || root_y > cur_height_limit){
-		mIsTerminal = true;
-		terminationReason = 1;
-	}
-	else if(!mRecord && std::abs(angle) > TERMINAL_ROOT_DIFF_ANGLE_THRESHOLD){
-		mIsTerminal = true;
-		terminationReason = 5;
-	}
-	else if(mCurrentFrame > mReferenceManager->GetPhaseLength() * 10) { // this->mBVH->GetMaxFrame() - 1.0){
-		mIsTerminal = true;
-		terminationReason =  8;
+		double cur_height_limit = TERMINAL_ROOT_HEIGHT_UPPER_LIMIT;
+		if(!mRecord && root_y<TERMINAL_ROOT_HEIGHT_LOWER_LIMIT || root_y > cur_height_limit){
+			mIsTerminal = true;
+			terminationReason = 1;
+		}
+		else if(!mRecord && std::abs(angle) > TERMINAL_ROOT_DIFF_ANGLE_THRESHOLD){
+			mIsTerminal = true;
+			terminationReason = 5;
+		}
+		else if(mCurrentFrame > mReferenceManager->GetPhaseLength() * 10) { // this->mBVH->GetMaxFrame() - 1.0){
+			mIsTerminal = true;
+			terminationReason =  8;
+		}
 	}
 
 	if(mRecord) {

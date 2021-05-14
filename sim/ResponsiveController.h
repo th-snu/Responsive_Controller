@@ -60,7 +60,7 @@ private:
 	std::vector<Eigen::VectorXd> mRecordVirtualVelocity;
 	std::vector<std::vector<Eigen::VectorXd>> mRecordPerturbancePosition;
 
-	bool mIsFeedbackDelayed;
+	bool mIsFeedbackDelayed = true;
 };
 
 }
