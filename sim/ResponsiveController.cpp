@@ -8,11 +8,6 @@ namespace DPhy
 ResponsiveController::
 ResponsiveController(ReferenceManager* ref, const std::string character_path, bool record, int id): Controller(ref, character_path, record, id)
 {
-	// just create virtual world and character from the scratch like world & character
-
-	// auto collisionEngine = mVirtualWorld->getConstraintSolver()->getCollisionDetector();
-	// collisionEngine->createCollisionGroup(this->mVirtualCharacter->GetSkeleton().get());
-	// collisionEngine->createCollisionGroup(this->mVirtualWorld->getSkeleton("Ground").get());
 	this->mVirtualWorld = std::make_shared<dart::simulation::World>();
 	this->mVirtualWorld->setTimeStep(1.0/(double)mSimulationHz);
 	this->mVirtualWorld->setGravity(Eigen::Vector3d(0,-9.8,0));	
@@ -21,7 +16,6 @@ ResponsiveController(ReferenceManager* ref, const std::string character_path, bo
 	auto vGround = DPhy::SkeletonBuilder::BuildFromFile(std::string(PROJECT_DIR)+std::string("/character/ground.xml")).first;
 	vGround->getBodyNode(0)->setFrictionCoeff(1.0);
 	this->mVirtualWorld->addSkeleton(vGround);
-
 
 	this->mVirtualCharacter = new DPhy::Character(character_path);
 	this->mVirtualWorld->addSkeleton(this->mVirtualCharacter->GetSkeleton());
