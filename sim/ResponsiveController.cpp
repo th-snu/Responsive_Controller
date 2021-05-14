@@ -8,17 +8,25 @@ namespace DPhy
 ResponsiveController::
 ResponsiveController(ReferenceManager* ref, const std::string character_path, bool record, int id): Controller(ref, character_path, record, id)
 {
-	this->mVirtualWorld =  this->mWorld->clone();
-	this->mVirtualWorld->setTimeStep(1.0/(double)mSimulationHz);
-	this->mVirtualWorld->removeSkeleton(this->mVirtualWorld->getSkeleton(this->GetSkeleton()->getName()));
-	this->mVirtualCharacter = new DPhy::Character(character_path);
-	this->mVirtualCharacter->GetSkeleton()->setTimeStep(this->mCharacter->GetSkeleton()->getTimeStep());
-	this->mVirtualWorld->addSkeleton(this->mVirtualCharacter->GetSkeleton());
-	this->mVirtualCharacter->SetPDParameters(600, 49);
+	// just create virtual world and character from the scratch like world & character
 
-	auto collisionEngine = mVirtualWorld->getConstraintSolver()->getCollisionDetector();
-	collisionEngine->createCollisionGroup(this->mVirtualCharacter->GetSkeleton().get());
-	collisionEngine->createCollisionGroup(this->mVirtualWorld->getSkeleton("Ground").get());
+	// auto collisionEngine = mVirtualWorld->getConstraintSolver()->getCollisionDetector();
+	// collisionEngine->createCollisionGroup(this->mVirtualCharacter->GetSkeleton().get());
+	// collisionEngine->createCollisionGroup(this->mVirtualWorld->getSkeleton("Ground").get());
+	this->mVirtualWorld = std::make_shared<dart::simulation::World>();
+	this->mVirtualWorld->setTimeStep(1.0/(double)mSimulationHz);
+	this->mVirtualWorld->setGravity(Eigen::Vector3d(0,-9.8,0));	
+	this->mVirtualWorld->getConstraintSolver()->setCollisionDetector(dart::collision::DARTCollisionDetector::create());
+	dynamic_cast<dart::constraint::BoxedLcpConstraintSolver*>(mVirtualWorld->getConstraintSolver())->setBoxedLcpSolver(std::make_shared<dart::constraint::PgsBoxedLcpSolver>());
+	auto vGround = DPhy::SkeletonBuilder::BuildFromFile(std::string(PROJECT_DIR)+std::string("/character/ground.xml")).first;
+	vGround->getBodyNode(0)->setFrictionCoeff(1.0);
+	this->mVirtualWorld->addSkeleton(vGround);
+
+
+	this->mVirtualCharacter = new DPhy::Character(character_path);
+	this->mVirtualWorld->addSkeleton(this->mVirtualCharacter->GetSkeleton());
+	
+	this->mVirtualCharacter->SetPDParameters(600, 49);
 
 	this->last_position_bias = Eigen::VectorXd(GetSkeleton()->getPositions().size()).setZero();
 	this->last_velocity_bias = Eigen::VectorXd(GetSkeleton()->getVelocities().size()).setZero();
@@ -200,15 +208,19 @@ void
 ResponsiveController::
 SimStep()
 {
+	cout << "Simstep #" << mTimeElapsed << endl;
 	// return Controller::SimStep();
 
 	int num_body_nodes = mInterestedDof / 3;
 
+	auto vSkel = mVirtualCharacter->GetSkeleton();
+
 	Eigen::VectorXd torque = mVirtualCharacter->GetSPDForces(mPDTargetPositions, mPDTargetVelocities);
+	auto rtorque = mCharacter->GetSPDForces(mPDTargetPositions, mPDTargetVelocities);
 
 	for(int j = 0; j < num_body_nodes; j++) {
-		int idx = mVirtualCharacter->GetSkeleton()->getBodyNode(j)->getParentJoint()->getIndexInSkeleton(0);
-		int dof = mVirtualCharacter->GetSkeleton()->getBodyNode(j)->getParentJoint()->getNumDofs();
+		int idx = vSkel->getBodyNode(j)->getParentJoint()->getIndexInSkeleton(0);
+		int dof = vSkel->getBodyNode(j)->getParentJoint()->getNumDofs();
 		std::string name = mCharacter->GetSkeleton()->getBodyNode(j)->getName();
 		double torquelim = mCharacter->GetTorqueLimit(name) * 1.5;
 		double torque_norm = torque.block(idx, 0, dof, 1).norm();
@@ -222,13 +234,13 @@ SimStep()
 	if (dart::math::isNan(torque) || dart::math::isInf(torque))
 		torque.setZero();
 	
-	// prevent controller exploding by torque itself
+	// prevent controller exploding by torque
 	if (torque.norm() > 10000.0){
 		torque /= (torque.norm() / 10000.0);
 	}
 
 	mCharacter->GetSkeleton()->setForces(torque);
-		mVirtualCharacter->GetSkeleton()->setForces(torque);
+	mVirtualCharacter->GetSkeleton()->setForces(torque);
 
 	if (body_contact){
 		contact_timestamp.push_back(this->mTimeElapsed);
@@ -240,6 +252,9 @@ SimStep()
 	UpdatePerceptionInfo();
 
 	mTimeElapsed += 1;
+
+	auto vRes = mVirtualWorld->getLastCollisionResult();
+	auto res = mWorld->getLastCollisionResult();
 
 	auto collisionSolver = mWorld->getConstraintSolver();
 	this->mLastCollision = collisionSolver->getLastCollisionResult();
@@ -300,10 +315,62 @@ bool ResponsiveController::HumanoidCollide (){
 void ResponsiveController::
 	UpdatePerceptionInfo()
 {
-	auto response_time = mSimulationHz / 5;
-	if(!contact_timestamp.empty() && contact_timestamp[0] - mTimeElapsed > response_time){
-		mVirtualCharacter->GetSkeleton()->setState(mCharacter->GetSkeleton()->getState());
+	return;
+
+	const int max_reaction_frame = mSimulationHz / 5;
+
+	// perceived state = actual state + delta (decays over time)
+	auto skel = mCharacter->GetSkeleton();
+	auto vSkel = mVirtualCharacter->GetSkeleton();
+	Eigen::VectorXd positions = skel->getPositions();
+	Eigen::VectorXd velocities = skel->getVelocities();
+
+	while(!contact_timestamp.empty() && contact_timestamp.front() < this->mTimeElapsed - max_reaction_frame){
+		contact_timestamp.erase(contact_timestamp.begin());
+		d_expected_positions.erase(d_expected_positions.begin());
+		d_expected_velocities.erase(d_expected_velocities.begin());
 	}
+	
+	Eigen::VectorXd position_bias(positions.size());
+	Eigen::VectorXd velocity_bias(velocities.size());
+	position_bias.setZero();
+	velocity_bias.setZero();
+
+	for (int i = 0; i < contact_timestamp.size(); i++){
+		int contactTimeElapsed = this->mTimeElapsed - contact_timestamp[i];
+		double weight = 1.0 - (exp(contactTimeElapsed) - 1) / (exp(max_reaction_frame) - 1);
+		cout << "dev: " << d_expected_velocities[i].norm() <<  ", weight: " << weight << endl;
+		auto d_v = d_expected_velocities[i] * weight;
+		velocity_bias += d_v;
+		position_bias += d_expected_positions[i] * weight + (1.0 / mSimulationHz) * d_v * contactTimeElapsed;
+	}
+
+	positions += position_bias;
+	velocities += velocity_bias;
+
+	// this->d_position_bias = position_bias - this->last_position_bias;
+	// auto d_velocity_bias = velocity_bias - this->last_velocity_bias;
+	// this->last_position_bias = position_bias;
+	// this->last_velocity_bias = velocity_bias;
+
+	// vSkel->setPositions(vSkel->getPositions() + d_position_bias);
+	// vSkel->setVelocities(vSkel->getVelocities() + d_velocity_bias);
+
+	vSkel->setPositions(positions);
+	vSkel->setVelocities(velocities);
+	vSkel->clearConstraintImpulses();
+
+	// auto collisionSolver = mVirtualWorld->getConstraintSolver();
+	// for(auto contact: collisionSolver->getLastCollisionResult().getContacts()){
+	// 	auto co1 = contact.collisionObject1;
+	// 	auto co2 = contact.collisionObject2;
+
+	// 	auto sf1 = co1->getShapeFrame()->getName();
+	// 	auto sf2 = co2->getShapeFrame()->getName();
+
+	// 	std::cout << sf1 << " / " << sf2  << " : " << contact.force << std::endl;
+	// }
+	
 }
 
 void 
@@ -315,20 +382,9 @@ ClearRecord()
 	this->mRecordVirtualPosition.clear();
 
 	// virtual character should be updated before recording in controller reset
-	this->mVirtualWorld->reset();
 	auto vSkel = this->mVirtualCharacter->GetSkeleton();
-	vSkel->clearConstraintImpulses();
-	vSkel->clearInternalForces();
-	vSkel->clearExternalForces();
 	vSkel->setPositions(this->GetSkeleton()->getPositions());
 	vSkel->setVelocities(this->GetSkeleton()->getVelocities());
-	d_expected_positions.clear();
-	d_expected_velocities.clear();
-	contact_timestamp.clear();
-	last_position_bias.setZero();
-	last_velocity_bias.setZero();
-	d_position_bias.setZero();
-	this->mLastCollision.clear();
 }
 
 void
@@ -344,6 +400,19 @@ void
 ResponsiveController::
 Reset(bool RSI)
 {
+	this->mVirtualWorld->reset();
+	auto vSkel = this->mVirtualCharacter->GetSkeleton();
+	vSkel->clearConstraintImpulses();
+	vSkel->clearInternalForces();
+	vSkel->clearExternalForces();
+	d_expected_positions.clear();
+	d_expected_velocities.clear();
+	contact_timestamp.clear();
+	last_position_bias.setZero();
+	last_velocity_bias.setZero();
+	d_position_bias.setZero();
+	this->mLastCollision.clear();
+
 	Controller::Reset(RSI);
 	// clearrecord has functions needed in reset
 }
