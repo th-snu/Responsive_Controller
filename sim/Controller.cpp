@@ -5,7 +5,7 @@ namespace DPhy
 {
 
 Controller::Controller(ReferenceManager* ref, const std::string character_path, bool record, int id, bool train)
-	:mControlHz(30),mSimulationHz(1200),mCurrentFrame(0),
+	:mControlHz(30),mSimulationHz(120),mCurrentFrame(0),
 	w_p(0.35),w_v(0.1),w_ee(0.3),w_com(0.25),
 	terminationReason(-1),mIsNanAtTerminal(false), mIsTerminal(false)
 {

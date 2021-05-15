@@ -239,11 +239,6 @@ SimStep()
 	if (dart::math::isNan(torque) || dart::math::isInf(torque))
 		torque.setZero();
 	
-	// prevent controller exploding by torque
-	if (torque.norm() > 10000.0){
-		torque /= (torque.norm() / 10000.0);
-	}
-
 	mCharacter->GetSkeleton()->setForces(torque);
 	mVirtualCharacter->GetSkeleton()->setForces(torque);
 	UpdatePerceptionInfo();
