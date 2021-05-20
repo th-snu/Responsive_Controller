@@ -36,7 +36,7 @@ public:
 	void initPhysicsEnv();
 
 	virtual void SetPDTarget();
-	bool Step();
+	virtual bool Step();
 	virtual void SimStep();
 
 	const dart::simulation::WorldPtr& GetWorld() {return mWorld;}

@@ -28,6 +28,7 @@ ResponsiveController(ReferenceManager* ref, const std::string character_path, bo
 
 	this->last_position_bias = Eigen::VectorXd(GetSkeleton()->getPositions().size()).setZero();
 	this->last_velocity_bias = Eigen::VectorXd(GetSkeleton()->getVelocities().size()).setZero();
+	torque = Eigen::VectorXd(mVirtualCharacter->GetSkeleton()->getNumDofs());
 }
 
 Eigen::VectorXd 
@@ -201,19 +202,26 @@ SetPDTarget(){
 	}
 }
 
+bool
+ResponsiveController::
+Step()
+{
+	return Controller::Step();
+}
+
 void
 ResponsiveController::
 SimStep()
 {
+	// fix something to make character walk correctly
 	int num_body_nodes = mInterestedDof / 3;
 
 	auto vSkel = mVirtualCharacter->GetSkeleton();
 
-	Eigen::VectorXd torque(vSkel->getNumDofs());
-
 	// implement recovery mode
 	if (this->mTargetVelocities.isZero() || this->mPrevTargetPositions.isZero()){
-		torque.setZero();
+		// use old torque value
+
 		// auto pos = this->GetSkeleton()->getPositions();
 		// pos[0] = NAN;
 		// this->GetSkeleton()->setPositions(pos);
@@ -234,7 +242,7 @@ SimStep()
 	}
 
 	// check contact of humanoid
-	bool body_contact = this->HumanoidCollide();
+	on_contact = this->HumanoidCollide();
 
 	if (dart::math::isNan(torque) || dart::math::isInf(torque))
 		torque.setZero();
@@ -243,9 +251,17 @@ SimStep()
 	mVirtualCharacter->GetSkeleton()->setForces(torque);
 	UpdatePerceptionInfo();
 
-	if (body_contact){
+	if (on_contact && mIsFeedbackDelayed && contact_timestamp.size() == contact_end_timestamp.size()){
 		// a contact can occur for a long time, so it could be considered as well in the future
 		contact_timestamp.push_back(this->mTimeElapsed);
+	}
+	else if (contact_timestamp.size() > contact_end_timestamp.size()){
+		if (!on_contact && mIsFeedbackDelayed){
+			contact_end_timestamp.push_back(this->mTimeElapsed);
+		}
+		else if (!mIsFeedbackDelayed){
+			contact_timestamp.pop_back();
+		}
 	}
 
 	mVirtualWorld->step(false);
@@ -254,12 +270,49 @@ SimStep()
 
 	mTimeElapsed += 1;
 
-	auto vRes = mVirtualWorld->getLastCollisionResult();
-	auto res = mWorld->getLastCollisionResult();
-
 	auto collisionSolver = mWorld->getConstraintSolver();
 	this->mLastCollision = collisionSolver->getLastCollisionResult();
 	this->mLastContacts = getLastContacts();
+}
+
+void ResponsiveController::
+	UpdatePerceptionInfo()
+{
+	const int max_reaction_frame = mSimulationHz / 10.0;
+
+	auto skel = mCharacter->GetSkeleton();
+	auto vSkel = mVirtualCharacter->GetSkeleton();
+
+	bool update = false;
+
+	if(!mIsFeedbackDelayed) update = true;
+
+	int vFrame = this->mTimeElapsed - max_reaction_frame;
+
+	if(!contact_end_timestamp.empty() && contact_timestamp.front() <= vFrame && contact_end_timestamp.front() >= vFrame){
+		// could be better to gradually update perception
+		contact_timestamp[0] = contact_end_timestamp[0] + 1;
+		update = true;
+		this->recovery_mode = true;
+		
+		if(!mIsFeedbackDelayed){
+			// todo: Properly retarget motion
+			mTargetVelocities.setZero();
+			mTargetPositions.setZero();
+		}
+	}
+	else if (!contact_end_timestamp.empty() && contact_end_timestamp.front() < vFrame){
+		contact_timestamp.erase(contact_timestamp.begin());
+		contact_end_timestamp.erase(contact_end_timestamp.begin());
+	}
+
+	if (update) {
+		Eigen::VectorXd positions = skel->getPositions();
+		Eigen::VectorXd velocities = skel->getVelocities();
+		vSkel->setPositions(positions);
+		vSkel->setVelocities(velocities);
+		vSkel->clearConstraintImpulses();
+	}
 }
 
 std::unordered_map<std::pair<std::string, std::string>, Eigen::Vector3d, Controller::pair_hash> ResponsiveController::getLastContacts(){
@@ -313,39 +366,6 @@ bool ResponsiveController::HumanoidCollide (){
 	return false;
 }
 
-void ResponsiveController::
-	UpdatePerceptionInfo()
-{
-	const int max_reaction_frame = mSimulationHz / 8.0;
-
-	auto skel = mCharacter->GetSkeleton();
-	auto vSkel = mVirtualCharacter->GetSkeleton();
-
-	bool update = false;
-
-	if(!mIsFeedbackDelayed) update = true;
-
-	while(!contact_timestamp.empty() && contact_timestamp.front() < this->mTimeElapsed - max_reaction_frame){
-		contact_timestamp.erase(contact_timestamp.begin());
-		update = true;
-		this->recovery_mode = true;
-		
-		if(mIsFeedbackDelayed){
-			// todo: Properly retarget motion
-			mTargetVelocities.setZero();
-			mTargetPositions.setZero();
-		}
-	}
-
-	if (update) {
-		Eigen::VectorXd positions = skel->getPositions();
-		Eigen::VectorXd velocities = skel->getVelocities();
-		vSkel->setPositions(positions);
-		vSkel->setVelocities(velocities);
-		vSkel->clearConstraintImpulses();
-	}
-}
-
 void 
 ResponsiveController::
 ClearRecord() 
@@ -385,9 +405,8 @@ Reset(bool RSI)
 	vSkel->clearConstraintImpulses();
 	vSkel->clearInternalForces();
 	vSkel->clearExternalForces();
-	d_expected_positions.clear();
-	d_expected_velocities.clear();
 	contact_timestamp.clear();
+	contact_end_timestamp.clear();
 	last_position_bias.setZero();
 	last_velocity_bias.setZero();
 	d_position_bias.setZero();

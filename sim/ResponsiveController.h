@@ -9,6 +9,7 @@ class ResponsiveController: public Controller
 public:
 	ResponsiveController(ReferenceManager* ref, const std::string character_path, bool record=false, int id=0);
 
+	bool Step() override;
 	void SimStep() override;
 
 	void setFeedbackDelayed(bool val){ this->mIsFeedbackDelayed = val; }
@@ -39,13 +40,15 @@ private:
 	std::unordered_map<std::pair<std::string, std::string>, Eigen::Vector3d, Controller::pair_hash> mLastContacts;
 	// Difference between the actual state and state without contact
 	// Given that controller is taking actions based on its perceived state
-	std::vector<Eigen::VectorXd> d_expected_positions;
-	std::vector<Eigen::VectorXd> d_expected_velocities;
+	bool on_contact;
 	std::vector<int> contact_timestamp;
+	std::vector<int> contact_end_timestamp;
 
 	Eigen::VectorXd last_position_bias;
 	Eigen::VectorXd last_velocity_bias;
 	Eigen::VectorXd d_position_bias;
+
+	Eigen::VectorXd torque;
 
 	// Weighted some of the delta expected states is added to the actual state.
 	Eigen::VectorXd perceived_positions;

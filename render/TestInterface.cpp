@@ -70,7 +70,7 @@ TestInterface::
 
     // Set up inertia for the ball
     dart::dynamics::Inertia inertia;
-    inertia.setMass(0.5);
+    inertia.setMass(1);
     inertia.setMoment(box->computeInertia(0.5));
     body->setInertia(inertia);
 }
@@ -90,7 +90,7 @@ void TestInterface::
 	DrawSkeletons();
 
 	GUI::DrawStringOnScreen(0.8, 0.9, std::to_string(mCurFrame), true, Eigen::Vector3d::Zero());
-	GUI::DrawStringOnScreen(0.8, 0.85, this->on_animation ? "Playing" : "Stopped", true, Eigen::Vector3d::Zero());
+	GUI::DrawStringOnScreen(0.8, 0.85, this->on_animation ? (mCurFrame + 1 < mTotalFrame ? "Replaying" : "Playing") : "Stopped", true, Eigen::Vector3d::Zero());
 	GUI::DrawStringOnScreen(0.8, 0.8, std::to_string(this->framerate) + "fps", true, Eigen::Vector3d::Zero());
 	GUI::DrawStringOnScreen(0.8, 0.75, this->mController->getFeedbackDelayed() ? "Enabled" : "Disabled", true, Eigen::Vector3d::Zero());
 	GUI::DrawStringOnScreen(0.1, 0.9, "T: Throw object at chacracter", true, Eigen::Vector3d::Zero());
