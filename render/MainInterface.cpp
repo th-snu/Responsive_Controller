@@ -77,9 +77,15 @@ void MainInterface::
 	DrawGround();
 
 	DrawSkeletons();
-	glutSwapBuffers();
 
 	GUI::DrawStringOnScreen(0.8, 0.9, std::to_string(mCurFrame), true, Eigen::Vector3d::Zero());
+	GUI::DrawStringOnScreen(0.8, 0.85, this->on_animation ? (mCurFrame + 1 < mTotalFrame ? "Replaying" : "Playing") : "Stopped", true, Eigen::Vector3d::Zero());
+	GUI::DrawStringOnScreen(0.1, 0.9, "T: Throw object at character", true, Eigen::Vector3d::Zero());
+	GUI::DrawStringOnScreen(0.1, 0.85, "Y: Toggle delayed feedback", true, Eigen::Vector3d::Zero());
+	GUI::DrawStringOnScreen(0.1, 0.8, "Space: Play/Stop toggle", true, Eigen::Vector3d::Zero());
+	GUI::DrawStringOnScreen(0.1, 0.75, "A/D: Go to prev/next frame", true, Eigen::Vector3d::Zero());
+	
+	glutSwapBuffers();
 }
 
 void MainInterface::
