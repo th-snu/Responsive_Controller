@@ -112,10 +112,11 @@ class Monitor(object):
 
 
 	def plotFig(self, y_list, title, num_fig=1, ylim=True, path=None):
+		fig = None
 		if self.plot:
-			plt.figure(num_fig, clear=True, figsize=(5.5, 4))
+			fig = plt.figure(num_fig, clear=True, figsize=(5.5, 4))
 		else:
-			plt.figure(num_fig, figsize=(5.5, 4))
+			fig = plt.figure(num_fig, figsize=(5.5, 4))
 		plt.title(title)
 
 		i = 0
@@ -124,10 +125,11 @@ class Monitor(object):
 			i+= 1
 		plt.legend(loc=2)
 		if self.plot:
-			plt.show()
+			# plt.show()
+			fig.canvas.flush_events() 
 			if ylim:
 				plt.ylim([0,1])
-			plt.pause(0.001)
+			#plt.pause(0.001)
 		if path is not None:
 			plt.savefig(path, format="png")
 

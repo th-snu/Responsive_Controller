@@ -247,6 +247,9 @@ SimStep()
 	if (dart::math::isNan(torque) || dart::math::isInf(torque))
 		torque.setZero();
 	
+	int max_reaction_frame = 60;
+	int vFrame = this->mTimeElapsed - max_reaction_frame;
+	
 	mCharacter->GetSkeleton()->setForces(torque);
 	mVirtualCharacter->GetSkeleton()->setForces(torque);
 	UpdatePerceptionInfo();

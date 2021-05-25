@@ -90,13 +90,14 @@ void TestInterface::
 	DrawSkeletons();
 
 	GUI::DrawStringOnScreen(0.8, 0.9, std::to_string(mCurFrame), true, Eigen::Vector3d::Zero());
-	GUI::DrawStringOnScreen(0.8, 0.85, this->on_animation ? (mCurFrame + 1 < mTotalFrame ? "Replaying" : "Playing") : "Stopped", true, Eigen::Vector3d::Zero());
-	GUI::DrawStringOnScreen(0.8, 0.8, std::to_string(this->framerate) + "fps", true, Eigen::Vector3d::Zero());
-	GUI::DrawStringOnScreen(0.8, 0.75, this->mController->getFeedbackDelayed() ? "Enabled" : "Disabled", true, Eigen::Vector3d::Zero());
-	GUI::DrawStringOnScreen(0.1, 0.9, "T: Throw object at chacracter", true, Eigen::Vector3d::Zero());
-	GUI::DrawStringOnScreen(0.1, 0.85, "Y: Toggle delayed feedback", true, Eigen::Vector3d::Zero());
-	GUI::DrawStringOnScreen(0.1, 0.8, "Space: Play/Stop toggle", true, Eigen::Vector3d::Zero());
-	GUI::DrawStringOnScreen(0.1, 0.75, "A/D: Go to prev/next frame", true, Eigen::Vector3d::Zero());
+	GUI::DrawStringOnScreen(0.8, 0.85, (mCurFrame + 1 < mTotalFrame ? "Replaying" : "Playing"), true, Eigen::Vector3d::Zero());
+	GUI::DrawStringOnScreen(0.8, 0.80, (this->on_animation ? "Auto" : "Manual"), true, Eigen::Vector3d::Zero());
+	GUI::DrawStringOnScreen(0.8, 0.75, std::to_string(this->framerate) + "fps", true, Eigen::Vector3d::Zero());
+	GUI::DrawStringOnScreen(0.8, 0.70, this->mController->getFeedbackDelayed() ? "Enabled" : "Disabled", true, Eigen::Vector3d::Zero());
+	GUI::DrawStringOnScreen(0.1, 0.9, "t: Throw object at character", true, Eigen::Vector3d::Zero());
+	GUI::DrawStringOnScreen(0.1, 0.85, "e: Toggle delayed feedback", true, Eigen::Vector3d::Zero());
+	GUI::DrawStringOnScreen(0.1, 0.8, "space: Play/Stop toggle", true, Eigen::Vector3d::Zero());
+	GUI::DrawStringOnScreen(0.1, 0.75, "a/d: Go to prev/next frame", true, Eigen::Vector3d::Zero());
 
 	glutSwapBuffers();
 }
@@ -489,6 +490,8 @@ void TestInterface::
 	if (key == 't')
 		this->perturb();
 	if (key == 'y')
+		this->perturb();
+	if (key == 'e')
 		this->mController->setFeedbackDelayed(!this->mController->getFeedbackDelayed());
 	if (key == 'r')
 		Reset();

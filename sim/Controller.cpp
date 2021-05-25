@@ -5,7 +5,7 @@ namespace DPhy
 {
 
 Controller::Controller(ReferenceManager* ref, const std::string character_path, bool record, int id, bool train)
-	:mControlHz(30),mSimulationHz(1200),mCurrentFrame(0),
+	:mControlHz(30),mSimulationHz(600),mCurrentFrame(0),
 	w_p(0.35),w_v(0.1),w_ee(0.3),w_com(0.25),
 	terminationReason(-1),mIsNanAtTerminal(false), mIsTerminal(false)
 {
@@ -147,7 +147,7 @@ SetPDTarget(){
 	Motion* p_v_target = mReferenceManager->GetMotion(mCurrentFrame);
 	Eigen::VectorXd p_now = p_v_target->GetPosition();
 	this->mTargetPositions = p_now ; //p_v_target->GetPosition();
-	this->mTargetVelocities = mCharacter->GetSkeleton()->getPositionDifferences(mTargetPositions, mPrevTargetPositions) / 0.033;
+	this->mTargetVelocities = mCharacter->GetSkeleton()->getPositionDifferences(mTargetPositions, mPrevTargetPositions) * mControlHz;
 	delete p_v_target;
 
 	p_v_target = mReferenceManager->GetMotion(mCurrentFrame);
@@ -393,7 +393,7 @@ UpdateReward()
 {
 	dart::dynamics::SkeletonPtr skel = this->mCharacter->GetSkeleton();
 	std::vector<double> tracking_rewards_bvh = this->GetTrackingReward(skel->getPositions(), mTargetPositions,
-								 skel->getVelocities(), mTargetVelocities,  true);
+								 skel->getVelocities(), mTargetVelocities,  false);
 	double accum_bvh = std::accumulate(tracking_rewards_bvh.begin(), tracking_rewards_bvh.end(), 0.0) / tracking_rewards_bvh.size();
 
 
