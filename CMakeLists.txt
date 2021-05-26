@@ -8,21 +8,31 @@ if(NOT CMAKE_BUILD_TYPE)
       FORCE)
 endif(NOT CMAKE_BUILD_TYPE)
 
+set(CMAKE_CXX_STANDARD 14)
+
 add_compile_options(-fPIC)
 add_compile_options(-std=gnu++17)
 add_compile_options(-Wdeprecated-declarations)
 add_compile_options(-lm)
+add_compile_options(-lboost_python)
 
 add_definitions(-DPROJECT_DIR="${CMAKE_HOME_DIRECTORY}")
+set(CMAKE_MODULE_PATH "${CMAKE_HOME_DIRECTORY}/cmake_module")
 
 # for eigen intellisense
 add_definitions(-DENABLE_PRECOMPILED_HEADERS=OFF)
 
 add_definitions(-DBOOST_ERROR_CODE_HEADER_ONLY)
-set(CMAKE_MODULE_PATH "${CMAKE_HOME_DIRECTORY}/cmake_module")
+
 find_package(DART REQUIRED COMPONENTS gui optimizer-ipopt collision-bullet collision-ode CONFIG)
+find_package(Boost COMPONENTS filesystem python38 numpy38 program_options)
+IF(NOT Boost_FOUND)
+find_package(Boost COMPONENTS filesystem python36 numpy36 program_options)
+ENDIF()
+
 find_package(PythonLibs 3.6 REQUIRED)
 find_package(PythonInterp 3.6 REQUIRED)
+find_package(PythonLibs REQUIRED)
 find_package(TinyXML REQUIRED)
 find_package(pybind11 REQUIRED)
 
