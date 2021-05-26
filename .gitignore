@@ -6,5 +6,7 @@ sim/libsim.a
 result/
 include/
 lib/
+c_env/
+py_env/
 
 */*.so

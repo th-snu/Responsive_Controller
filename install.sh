@@ -53,6 +53,7 @@ install_boost() {
 	./b2 --with-python --with-filesystem --with-regex --with-system --with-program_options --prefix=$ENVDIR install
 }
 
+install_library tiny-dnn https://github.com/tiny-dnn/tiny-dnn v1.0.0a3
 install_library tinyxml2 https://github.com/leethomason/tinyxml2 8.0.0
 install_library eigen https://gitlab.com/libeigen/eigen 3.3.7
 install_library libccd https://github.com/danfis/libccd v2.0
