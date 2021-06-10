@@ -40,7 +40,7 @@ DART_COMMON_MAKE_SHARED_WEAK(HumanArmJointLimitConstraint)
 
 /// HumanArmJointLimitConstraint handles joint position limits on human arm,
 /// representing range of motion of shoulder and elbow joints.
-class HumanArmJointLimitConstraint : public dart::dynamics::ConstraintBase
+class HumanArmJointLimitConstraint : public dart::constraint::ConstraintBase
 {
 public:
   /// Constructor
@@ -53,10 +53,10 @@ public:
   virtual ~HumanArmJointLimitConstraint() = default;
 
   // Documentation inherited
-  const std::string& getType() const override;
+  // const std::string& getType() const override;
 
   /// Returns constraint type for this class.
-  static const std::string& getStaticType();
+  // static const std::string& getStaticType();
 
   //----------------------------------------------------------------------------
   // Property settings
@@ -90,8 +90,8 @@ public:
   // Friendship
   //----------------------------------------------------------------------------
 
-  friend class dart::dynamics::ConstraintSolver;
-  friend class dart::dynamics::ConstrainedGroup;
+  friend class dart::constraint::ConstraintSolver;
+  friend class dart::constraint::ConstrainedGroup;
 
 protected:
   //----------------------------------------------------------------------------
@@ -102,7 +102,7 @@ protected:
   void update() override;
 
   // Documentation inherited
-  void getInformation(dart::dynamics::ConstraintInfo* lcp) override;
+  void getInformation(dart::constraint::ConstraintInfo* lcp) override;
 
   // Documentation inherited
   void applyUnitImpulse(std::size_t index) override;

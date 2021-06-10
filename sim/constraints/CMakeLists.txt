@@ -1,8 +1,12 @@
-cmake_minimum_required(VERSION 3.10.2 FATAL_ERROR)
+cmake_minimum_required(VERSION 2.8.6)
+project(constraints)
 
-get_filename_component(example_name ${CMAKE_CURRENT_LIST_DIR} NAME)
+SET(CMAKE_BUILD_TYPE Release CACHE STRING
+	"Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel."
+#	FORCE
+	)
 
-project(${example_name})
+add_compile_options(-DHAVE_CSTDDEF)
 
 set(TinyDNN_USE_SERIALIZER ON)
 find_package(TinyDNN QUIET)
@@ -22,28 +26,7 @@ if(NOT Threads_FOUND)
   return()
 endif()
 
-set(required_components io-urdf gui collision-ode collision-bullet)
-set(required_libraries
-  dart
-  dart-io-urdf
-  dart-gui
-  dart-collision-ode
-  dart-collision-bullet
-  ${TinyDNN_LIBRARIES}
-  Threads::Threads
-)
-
-if(DART_IN_SOURCE_BUILD)
-  dart_build_example_in_source(${example_name}
-    LINK_LIBRARIES ${required_libraries}
-    COMPILE_FEATURES cxx_std_14
-  )
-  return()
-endif()
-
-find_package(DART7 7.0.0 REQUIRED COMPONENTS ${required_components} CONFIG)
-
-file(GLOB srcs "*.cpp" "*.hpp")
-add_executable(${example_name} ${srcs})
-target_link_libraries(${example_name} PUBLIC ${required_libraries})
-target_compile_features(dart PUBLIC cxx_std_14)
+include_directories(${DART_INCLUDE_DIRS})
+file(GLOB srcs "*.hpp" "*.cpp")
+add_library(constraints ${srcs})
+target_link_libraries(constraints ${DART_LIBRARIES})

@@ -315,7 +315,7 @@ void HumanLegJointLimitConstraint::update()
 
 //==============================================================================
 void HumanLegJointLimitConstraint::getInformation(
-    dynamics::ConstraintInfo* lcp)
+    constraint::ConstraintInfo* lcp)
 {
   // if non-active, should not call getInfo()
   assert(isActive());

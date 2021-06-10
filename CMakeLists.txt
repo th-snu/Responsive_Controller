@@ -1,14 +1,22 @@
 cmake_minimum_required(VERSION 3.16)
 project(Reactive_Controller)
 
-if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE "Release" CACHE STRING
-      "Choose the type of build, options are: Debug Release
-		RelWithDebInfo MinSizeRel."
-      FORCE)
-endif(NOT CMAKE_BUILD_TYPE)
+# if(NOT CMAKE_BUILD_TYPE)
+#   set(CMAKE_BUILD_TYPE "Release" CACHE STRING
+#       "Choose the type of build, options are: Debug Release
+# 		RelWithDebInfo MinSizeRel."
+#       FORCE)
+# endif(NOT CMAKE_BUILD_TYPE)
 
 set(CMAKE_CXX_STANDARD 14)
+
+set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_PREFIX_PATH ${CENVDIR})
+set(FCL_INCLUDE_DIRS ${CENVDIR}/include/fcl)
+set(FCL_LIBRARIES ${CENVDIR}/lib/libfcl.so)
+set(CCD_INCLUDE_DIRS ${CENVDIR}/include/ccd)
+set(CCD_LIBRARIES ${CENVDIR}/lib/libccd.so)
+set(CMAKE_LIBRARY_PATH ${CENVDIR}/lib)
 
 add_compile_options(-fPIC)
 add_compile_options(-std=gnu++17)

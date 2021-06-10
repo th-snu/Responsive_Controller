@@ -52,8 +52,16 @@ install_boost() {
 	./bootstrap.sh --with-python=python3 --with-libraries=atomic,chrono,filesystem,python,system,regex,program_options
 	./b2 --with-python --with-filesystem --with-regex --with-system --with-program_options --prefix=$ENVDIR install
 }
+install_tiny-dnn() {
+    cd $ENVDIR/src
+    git clone https://github.com/tiny-dnn/tiny-dnn.git
+    cd $ENVDIR/src/tiny-dnn
+    git checkout c0f576f5cb7b35893f62127cb7aec18f77a3bcc5
+    cp -r ./tiny_dnn $ENVDIR/include
+    cp -r ./third_party $ENVDIR/include
+    cp -r ./cereal $ENVDIV/include
+}
 
-install_library tiny-dnn https://github.com/tiny-dnn/tiny-dnn v1.0.0a3
 install_library tinyxml2 https://github.com/leethomason/tinyxml2 8.0.0
 install_library eigen https://gitlab.com/libeigen/eigen 3.3.7
 install_library libccd https://github.com/danfis/libccd v2.0
@@ -65,7 +73,7 @@ install_library bullet3 https://github.com/bulletphysics/bullet3 2.89 \
 install_boost
 install_library dart-ltspd https://github.com/snumrl/dart-ltspd master \
 "-DDART_ENABLE_SIMD=ON -DFCL_INCLUDE_DIRS=$ENVDIR/include/fcl -DBULLET_INCLUDE_DIRS=$ENVDIR/include/bullet -DBOOST_INCLUDE_DIRS=$ENVDIR/include/boost"
-
+install_tiny-dnn
 
 cd $PROJECTDIR
 

@@ -85,17 +85,17 @@ HumanArmJointLimitConstraint::HumanArmJointLimitConstraint(
 }
 
 //==============================================================================
-const std::string& HumanArmJointLimitConstraint::getType() const
-{
-  return getStaticType();
-}
+// const std::string& HumanArmJointLimitConstraint::getType() const
+// {
+//   return getStaticType();
+// }
 
 //==============================================================================
-const std::string& HumanArmJointLimitConstraint::getStaticType()
-{
-  static const std::string name = "HumanArmJointLimitConstraint";
-  return name;
-}
+// const std::string& HumanArmJointLimitConstraint::getStaticType()
+// {
+//   static const std::string name = "HumanArmJointLimitConstraint";
+//   return name;
+// }
 
 //==============================================================================
 void HumanArmJointLimitConstraint::setErrorAllowance(double allowance)
@@ -306,7 +306,7 @@ void HumanArmJointLimitConstraint::update()
 
 //==============================================================================
 void HumanArmJointLimitConstraint::getInformation(
-    dynamics::ConstraintInfo* lcp)
+    constraint::ConstraintInfo* lcp)
 {
   // if non-active, should not call getInfo()
   assert(isActive());
