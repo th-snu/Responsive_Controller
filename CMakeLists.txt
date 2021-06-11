@@ -9,6 +9,9 @@ project(Reactive_Controller)
 # endif(NOT CMAKE_BUILD_TYPE)
 
 set(CMAKE_CXX_STANDARD 14)
+set(CENVDIR ${PROJECT_SOURCE_DIR}/c_env)
+
+add_definitions()
 
 set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_PREFIX_PATH ${CENVDIR})

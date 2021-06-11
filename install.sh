@@ -12,6 +12,9 @@ sudo apt-get install -y libxi-dev libxmu-dev freeglut3-dev
 sudo apt-get install -y python3-venv
 sudo apt-get install -y qtbase5-dev
 
+sudo apt-get install -y python-pybind11
+sudo apt-get install -y libglm-dev
+
 echo "installing c libaries"
 
 export PROJECTDIR=$(pwd)
